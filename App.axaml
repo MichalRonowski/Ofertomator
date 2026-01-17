@@ -1,0 +1,32 @@
+<Application xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="clr-namespace:Ofertomator.ViewModels"
+             xmlns:views="clr-namespace:Ofertomator.Views"
+             x:Class="Ofertomator.App"
+             RequestedThemeVariant="Dark">
+    <Application.Styles>
+        <FluentTheme />
+        <StyleInclude Source="avares://Avalonia.Controls.DataGrid/Themes/Fluent.xaml"/>
+    </Application.Styles>
+
+    <Application.DataTemplates>
+        <DataTemplate DataType="vm:ProductsViewModel">
+            <views:ProductsView />
+        </DataTemplate>
+        <DataTemplate DataType="vm:OfferGeneratorViewModel">
+            <views:OfferGeneratorView />
+        </DataTemplate>
+        <DataTemplate DataType="vm:CategoriesViewModel">
+            <views:CategoriesView />
+        </DataTemplate>
+        <DataTemplate DataType="vm:BusinessCardViewModel">
+            <views:BusinessCardView />
+        </DataTemplate>
+        <DataTemplate DataType="vm:SavedOffersViewModel">
+            <views:SavedOffersView />
+        </DataTemplate>
+        <DataTemplate DataType="vm:ImportViewModel">
+            <views:ImportView />
+        </DataTemplate>
+    </Application.DataTemplates>
+</Application>

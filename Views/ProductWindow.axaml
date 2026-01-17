@@ -1,0 +1,253 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:vm="clr-namespace:Ofertomator.ViewModels"
+        mc:Ignorable="d" d:DesignWidth="450" d:DesignHeight="600"
+        x:Class="Ofertomator.Views.ProductWindow"
+        x:DataType="vm:ProductEditorViewModel"
+        Title="{Binding WindowTitle}"
+        Width="450" Height="600"
+        WindowStartupLocation="CenterOwner"
+        CanResize="False"
+        Background="#1E1E1E">
+
+    <Design.DataContext>
+        <vm:ProductEditorViewModel />
+    </Design.DataContext>
+
+    <Window.Styles>
+        <!-- Dark Theme Styling -->
+        <Style Selector="Window">
+            <Setter Property="Background" Value="#1E1E1E"/>
+        </Style>
+        
+        <Style Selector="TextBlock">
+            <Setter Property="Foreground" Value="White"/>
+        </Style>
+
+        <Style Selector="TextBlock.label">
+            <Setter Property="Foreground" Value="#E0E0E0"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Margin" Value="0,0,0,5"/>
+        </Style>
+
+        <Style Selector="TextBlock.error">
+            <Setter Property="Foreground" Value="#F48771"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="Margin" Value="0,5,0,0"/>
+        </Style>
+
+        <Style Selector="TextBlock.required">
+            <Setter Property="Foreground" Value="#F48771"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+        </Style>
+
+        <Style Selector="TextBox, NumericUpDown, ComboBox">
+            <Setter Property="Background" Value="#2D2D30"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderBrush" Value="#3E3E42"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="8"/>
+        </Style>
+
+        <Style Selector="TextBox:focus, NumericUpDown:focus, ComboBox:focus">
+            <Setter Property="BorderBrush" Value="#007ACC"/>
+        </Style>
+
+        <Style Selector="TextBox.error, NumericUpDown.error, ComboBox.error">
+            <Setter Property="BorderBrush" Value="#F48771"/>
+            <Setter Property="BorderThickness" Value="2"/>
+        </Style>
+
+        <Style Selector="Button">
+            <Setter Property="Background" Value="#0E639C"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="20,10"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Cursor" Value="Hand"/>
+        </Style>
+
+        <Style Selector="Button:pointerover">
+            <Setter Property="Background" Value="#1177BB"/>
+        </Style>
+
+        <Style Selector="Button:disabled">
+            <Setter Property="Background" Value="#3E3E42"/>
+            <Setter Property="Foreground" Value="#6E6E6E"/>
+            <Setter Property="Cursor" Value="Arrow"/>
+        </Style>
+
+        <Style Selector="Button.cancel">
+            <Setter Property="Background" Value="#2D2D30"/>
+            <Setter Property="Foreground" Value="White"/>
+        </Style>
+
+        <Style Selector="Button.cancel:pointerover">
+            <Setter Property="Background" Value="#3E3E42"/>
+        </Style>
+    </Window.Styles>
+
+    <Grid Margin="20" RowDefinitions="Auto,*,Auto">
+        
+        <!-- Header -->
+        <StackPanel Grid.Row="0" Margin="0,0,0,20">
+            <TextBlock Text="{Binding WindowTitle}" 
+                      FontSize="20" 
+                      FontWeight="Bold"
+                      Foreground="#007ACC"
+                      Margin="0,0,0,5"/>
+            <TextBlock Text="{Binding StatusMessage}" 
+                      FontSize="12"
+                      Foreground="#B0B0B0"/>
+        </StackPanel>
+
+        <!-- Form -->
+        <ScrollViewer Grid.Row="1">
+            <StackPanel Spacing="15">
+
+                <!-- Kod Produktu -->
+                <StackPanel>
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="Kod Produktu" Classes="label"/>
+                        <TextBlock Text=" (opcjonalny)" 
+                                  FontSize="11" 
+                                  Foreground="#808080" 
+                                  VerticalAlignment="Bottom"
+                                  Margin="5,0,0,0"/>
+                    </StackPanel>
+                    
+                    <TextBox Text="{Binding Code}" 
+                            Watermark="np. PROD-001"/>
+                </StackPanel>
+
+                <!-- Nazwa Produktu (wymagana) -->
+                <StackPanel>
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="Nazwa Produktu" Classes="label"/>
+                        <TextBlock Text=" *" Classes="required"/>
+                    </StackPanel>
+                    
+                    <TextBox Text="{Binding Name}" 
+                            Watermark="np. Laptop Dell XPS 15"/>
+                </StackPanel>
+
+                <!-- Kategoria (wymagana) -->
+                <StackPanel>
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="Kategoria" Classes="label"/>
+                        <TextBlock Text=" *" Classes="required"/>
+                    </StackPanel>
+                    
+                    <ComboBox ItemsSource="{Binding Categories}"
+                             SelectedItem="{Binding SelectedCategory}"
+                             PlaceholderText="Wybierz kategorię..."
+                             HorizontalAlignment="Stretch">
+                        <ComboBox.ItemTemplate>
+                            <DataTemplate>
+                                <TextBlock Text="{Binding Name}"/>
+                            </DataTemplate>
+                        </ComboBox.ItemTemplate>
+                    </ComboBox>
+                    
+                    <!-- Komunikat gdy brak kategorii -->
+                    <TextBlock Text="⚠️ Brak kategorii. Dodaj kategorię przed dodaniem produktu."
+                              Classes="error"
+                              IsVisible="{Binding !Categories.Count}"/>
+                </StackPanel>
+
+                <!-- Cena Zakupu Netto (wymagana) -->
+                <StackPanel>
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="Cena Zakupu Netto (PLN)" Classes="label"/>
+                        <TextBlock Text=" *" Classes="required"/>
+                    </StackPanel>
+                    
+                    <NumericUpDown Value="{Binding PurchasePriceNet}"
+                                  Minimum="0.01"
+                                  Maximum="999999"
+                                  Increment="1"
+                                  FormatString="C2"
+                                  Watermark="0,00 PLN"/>
+                </StackPanel>
+
+                <!-- Stawka VAT (wymagana) -->
+                <StackPanel>
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="Stawka VAT (%)" Classes="label"/>
+                        <TextBlock Text=" *" Classes="required"/>
+                    </StackPanel>
+                    
+                    <NumericUpDown Value="{Binding VatRate}"
+                                  Minimum="0"
+                                  Maximum="100"
+                                  Increment="1"
+                                  FormatString="F0"
+                                  Watermark="23"/>
+                    
+                    <!-- Podpowiedzi typowych stawek VAT -->
+                    <TextBlock Text="💡 Typowe stawki: 23%, 8%, 5%, 0%" 
+                              FontSize="11" 
+                              Foreground="#808080"
+                              Margin="0,5,0,0"/>
+                </StackPanel>
+
+                <!-- Jednostka Miary -->
+                <StackPanel>
+                    <TextBlock Text="Jednostka Miary" Classes="label"/>
+                    
+                    <TextBox Text="{Binding Unit}" 
+                            Watermark="np. szt., kg, m"/>
+                    
+                    <TextBlock Text="💡 Typowe jednostki: szt., kg, m, l, m², op." 
+                              FontSize="11" 
+                              Foreground="#808080"
+                              Margin="0,5,0,0"/>
+                </StackPanel>
+
+            </StackPanel>
+        </ScrollViewer>
+
+        <!-- Footer - Action Buttons -->
+        <Grid Grid.Row="2" 
+              ColumnDefinitions="*,Auto,Auto" 
+              Margin="0,20,0,0">
+            
+            <!-- Loading Indicator -->
+            <StackPanel Grid.Column="0" 
+                       Orientation="Horizontal" 
+                       Spacing="10"
+                       VerticalAlignment="Center"
+                       IsVisible="{Binding IsBusy}">
+                <ProgressBar IsIndeterminate="True" 
+                            Width="100" 
+                            Height="4"/>
+                <TextBlock Text="{Binding StatusMessage}" 
+                          FontSize="12"
+                          VerticalAlignment="Center"/>
+            </StackPanel>
+
+            <!-- Cancel Button -->
+            <Button Grid.Column="1" 
+                   Content="Anuluj"
+                   Command="{Binding CancelCommand}"
+                   Classes="cancel"
+                   Margin="0,0,10,0"
+                   IsEnabled="{Binding !IsBusy}"/>
+
+            <!-- Save Button -->
+            <Button Grid.Column="2"
+                   Content="{Binding SaveButtonText}"
+                   Command="{Binding SaveCommand}"
+                   IsEnabled="{Binding CanSave}">
+                <Button.Styles>
+                    <Style Selector="Button:disabled">
+                        <Setter Property="ToolTip.Tip" Value="Wypełnij wymagane pola poprawnie"/>
+                    </Style>
+                </Button.Styles>
+            </Button>
+        </Grid>
+
+    </Grid>
+</Window>

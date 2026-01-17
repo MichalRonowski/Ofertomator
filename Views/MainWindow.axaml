@@ -1,0 +1,120 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:vm="clr-namespace:Ofertomator.ViewModels"
+        mc:Ignorable="d" d:DesignWidth="1200" d:DesignHeight="800"
+        x:Class="Ofertomator.Views.MainWindow"
+        x:DataType="vm:MainViewModel"
+        Title="{Binding Title}"
+        Width="1200" Height="800"
+        MinWidth="800" MinHeight="600">
+
+    <Design.DataContext>
+        <vm:MainViewModel />
+    </Design.DataContext>
+
+    <Grid RowDefinitions="Auto,*,Auto">
+        
+        <!-- Menu Bar -->
+        <Menu Grid.Row="0" Background="#2D2D30">
+            <MenuItem Header="_Baza Produktów" Foreground="White">
+                <MenuItem Header="Zarządzaj Produktami" 
+                         Command="{Binding ShowProductsCommand}"/>
+                <Separator />
+                <MenuItem Header="Kategorie" 
+                         Command="{Binding ShowCategoriesCommand}"/>
+                <MenuItem Header="Importuj z CSV" 
+                         Command="{Binding ShowImportCommand}"/>
+            </MenuItem>
+            <MenuItem Header="_Oferty" Foreground="White">
+                <MenuItem Header="Nowa Oferta" 
+                         Command="{Binding ShowOfferGeneratorCommand}"/>
+                <MenuItem Header="Zapisane Oferty"
+                         Command="{Binding ShowSavedOffersCommand}"/>
+            </MenuItem>
+            <MenuItem Header="_Ustawienia" Foreground="White">
+                <MenuItem Header="Moja Firma" 
+                         Command="{Binding ShowBusinessCardCommand}"/>
+            </MenuItem>
+            <MenuItem Header="_Widok" Foreground="White">
+                <MenuItem Header="Strona Główna" 
+                         Command="{Binding ShowHomeCommand}"/>
+            </MenuItem>
+        </Menu>
+
+        <!-- Content Area -->
+        <Border Grid.Row="1" Background="#1E1E1E">
+            <Grid>
+                <!-- Content Control dla nawigacji -->
+                <ContentControl Content="{Binding CurrentView}"
+                               IsVisible="{Binding CurrentView, Converter={x:Static ObjectConverters.IsNotNull}}"
+                               HorizontalContentAlignment="Stretch"
+                               VerticalContentAlignment="Stretch"/>
+
+                <!-- Welcome Screen (gdy CurrentView = null) -->
+                <StackPanel HorizontalAlignment="Center" 
+                           VerticalAlignment="Center"
+                           Spacing="20"
+                           IsVisible="{Binding CurrentView, Converter={x:Static ObjectConverters.IsNull}}">
+                    
+                    <StackPanel.IsVisible>
+                        <MultiBinding Converter="{x:Static BoolConverters.And}">
+                            <Binding Path="CurrentView" Converter="{x:Static ObjectConverters.IsNull}"/>
+                            <Binding Path="!IsLoading"/>
+                        </MultiBinding>
+                    </StackPanel.IsVisible>
+
+                    <TextBlock Text="Ofertomator 2.0" 
+                              FontSize="36" 
+                              FontWeight="Bold"
+                              Foreground="White"
+                              HorizontalAlignment="Center"/>
+                    <TextBlock Text="System zarządzania ofertami handlowymi" 
+                              FontSize="16" 
+                              Foreground="#CCCCCC"
+                              HorizontalAlignment="Center"/>
+                    <StackPanel Orientation="Horizontal" 
+                               HorizontalAlignment="Center" 
+                               Spacing="10"
+                               Margin="0,20,0,0">
+                        <Button Content="Nowa Oferta" 
+                               Command="{Binding ShowOfferGeneratorCommand}"
+                               Padding="15,8" 
+                               Background="#007ACC"
+                               Foreground="White"/>
+                        <Button Content="Zarządzaj Produktami" 
+                               Command="{Binding ShowProductsCommand}"
+                               Padding="15,8"
+                               Background="#007ACC"
+                               Foreground="White"/>
+                    </StackPanel>
+                </StackPanel>
+
+                <!-- Loading Indicator -->
+                <StackPanel HorizontalAlignment="Center" 
+                           VerticalAlignment="Center"
+                           Spacing="15"
+                           IsVisible="{Binding IsLoading}">
+                    <ProgressBar IsIndeterminate="True" 
+                                Width="300" 
+                                Height="4"
+                                Foreground="#007ACC"/>
+                    <TextBlock Text="{Binding StatusMessage}" 
+                              FontSize="14" 
+                              Foreground="White"
+                              HorizontalAlignment="Center"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- Status Bar -->
+        <Border Grid.Row="2" 
+                Background="#007ACC" 
+                Padding="10,5">
+            <TextBlock Text="{Binding StatusMessage}" 
+                      Foreground="White" 
+                      FontSize="12"/>
+        </Border>
+    </Grid>
+</Window>

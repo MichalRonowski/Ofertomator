@@ -1,0 +1,246 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="clr-namespace:Ofertomator.ViewModels"
+             mc:Ignorable="d" d:DesignWidth="1000" d:DesignHeight="700"
+             x:Class="Ofertomator.Views.ImportView"
+             x:DataType="vm:ImportViewModel">
+
+    <Design.DataContext>
+        <vm:ImportViewModel />
+    </Design.DataContext>
+
+    <UserControl.Styles>
+        <Style Selector="TextBlock">
+            <Setter Property="Foreground" Value="White"/>
+        </Style>
+        <Style Selector="TextBlock.header">
+            <Setter Property="FontSize" Value="16"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="Foreground" Value="#007ACC"/>
+            <Setter Property="Margin" Value="0,0,0,10"/>
+        </Style>
+        <Style Selector="TextBlock.label">
+            <Setter Property="Margin" Value="0,0,10,0"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="Width" Value="100"/>
+        </Style>
+        <Style Selector="Button">
+            <Setter Property="Background" Value="#0E639C"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="Padding" Value="15,8"/>
+            <Setter Property="Cursor" Value="Hand"/>
+        </Style>
+        <Style Selector="Button:pointerover">
+            <Setter Property="Background" Value="#1177BB"/>
+        </Style>
+        <Style Selector="Button:disabled">
+            <Setter Property="Opacity" Value="0.5"/>
+            <Setter Property="Cursor" Value="Arrow"/>
+        </Style>
+        <Style Selector="ComboBox">
+            <Setter Property="Background" Value="#2D2D30"/>
+            <Setter Property="Foreground" Value="White"/>
+        </Style>
+        <Style Selector="DataGrid">
+            <Setter Property="Background" Value="#252526"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="RowBackground" Value="#2D2D30"/>
+            <Setter Property="GridLinesVisibility" Value="All"/>
+            <Setter Property="HorizontalGridLinesBrush" Value="#3E3E40"/>
+            <Setter Property="VerticalGridLinesBrush" Value="#3E3E40"/>
+        </Style>
+    </UserControl.Styles>
+
+    <ScrollViewer>
+        <StackPanel Margin="20" Spacing="20">
+            
+            <!-- SEKCJA 1: Wybór Pliku -->
+            <Border Background="#2D2D30" 
+                    Padding="15" 
+                    CornerRadius="5"
+                    BorderBrush="#3E3E42" 
+                    BorderThickness="1">
+                <StackPanel Spacing="10">
+                    <TextBlock Text="1. Wybór Pliku CSV" Classes="header"/>
+                    
+                    <StackPanel Orientation="Horizontal" Spacing="10">
+                        <Button Content="📁 Wybierz plik CSV" 
+                                Command="{Binding SelectFileCommand}"/>
+                        <TextBlock Text="{Binding FilePath}" 
+                                  VerticalAlignment="Center"
+                                  Foreground="#B0B0B0"
+                                  TextTrimming="CharacterEllipsis"
+                                  Width="500"/>
+                    </StackPanel>
+
+                    <StackPanel Orientation="Horizontal" 
+                               Spacing="20"
+                               IsVisible="{Binding FilePath, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+                        <TextBlock Text="{Binding TotalRows, StringFormat='Wierszy: {0}'}" 
+                                  Foreground="#B0B0B0"/>
+                        <TextBlock Text="{Binding Separator, StringFormat='Separator: \'{0}\''}" 
+                                  Foreground="#B0B0B0"/>
+                        <TextBlock Text="{Binding CsvHeaders.Count, StringFormat='Kolumn: {0}'}" 
+                                  Foreground="#B0B0B0"/>
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+
+            <!-- SEKCJA 2: Mapowanie Kolumn -->
+            <Border Background="#2D2D30" 
+                    Padding="15" 
+                    CornerRadius="5"
+                    BorderBrush="#3E3E42" 
+                    BorderThickness="1"
+                    IsVisible="{Binding FilePath, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+                <StackPanel Spacing="10">
+                    <TextBlock Text="2. Mapowanie Kolumn" Classes="header"/>
+                    <TextBlock Text="Wskaż, które kolumny z pliku CSV odpowiadają polom w bazie danych:" 
+                              Foreground="#B0B0B0"
+                              Margin="0,0,0,10"/>
+
+                    <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto" 
+                          ColumnDefinitions="Auto,*"
+                          VerticalAlignment="Top">
+                        
+                        <!-- Kod -->
+                        <TextBlock Grid.Row="0" Grid.Column="0" 
+                                  Text="Kod (opcjonalnie):" 
+                                  Classes="label"/>
+                        <ComboBox Grid.Row="0" Grid.Column="1" 
+                                 ItemsSource="{Binding CsvHeaders}"
+                                 SelectedItem="{Binding SelectedCodeColumn}"
+                                 PlaceholderText="-- Wybierz kolumnę --"
+                                 Margin="0,5"/>
+
+                        <!-- Nazwa (Wymagane) -->
+                        <TextBlock Grid.Row="1" Grid.Column="0" 
+                                  Text="Nazwa *:" 
+                                  Classes="label"
+                                  Foreground="#FF6B6B"/>
+                        <ComboBox Grid.Row="1" Grid.Column="1" 
+                                 ItemsSource="{Binding CsvHeaders}"
+                                 SelectedItem="{Binding SelectedNameColumn}"
+                                 PlaceholderText="-- Wybierz kolumnę --"
+                                 Margin="0,5"/>
+
+                        <!-- Cena Netto -->
+                        <TextBlock Grid.Row="2" Grid.Column="0" 
+                                  Text="Cena Netto:" 
+                                  Classes="label"/>
+                        <ComboBox Grid.Row="2" Grid.Column="1" 
+                                 ItemsSource="{Binding CsvHeaders}"
+                                 SelectedItem="{Binding SelectedPriceColumn}"
+                                 PlaceholderText="-- Wybierz kolumnę --"
+                                 Margin="0,5"/>
+
+                        <!-- VAT -->
+                        <TextBlock Grid.Row="3" Grid.Column="0" 
+                                  Text="VAT (%):" 
+                                  Classes="label"/>
+                        <ComboBox Grid.Row="3" Grid.Column="1" 
+                                 ItemsSource="{Binding CsvHeaders}"
+                                 SelectedItem="{Binding SelectedVatColumn}"
+                                 PlaceholderText="-- Wybierz kolumnę --"
+                                 Margin="0,5"/>
+
+                        <!-- Jednostka -->
+                        <TextBlock Grid.Row="4" Grid.Column="0" 
+                                  Text="Jednostka:" 
+                                  Classes="label"/>
+                        <ComboBox Grid.Row="4" Grid.Column="1" 
+                                 ItemsSource="{Binding CsvHeaders}"
+                                 SelectedItem="{Binding SelectedUnitColumn}"
+                                 PlaceholderText="-- Wybierz kolumnę --"
+                                 Margin="0,5"/>
+                    </Grid>
+                    
+                    <TextBlock Text="ℹ️ Importowane produkty trafią do kategorii 'Bez kategorii'. Możesz przypisać je później w zarządzaniu produktami." 
+                              Foreground="#FFA500"
+                              FontSize="11"
+                              FontStyle="Italic"
+                              Margin="0,10,0,0"/>
+                </StackPanel>
+            </Border>
+
+            <!-- SEKCJA 3: Podgląd Danych -->
+            <Border Background="#2D2D30" 
+                    Padding="15" 
+                    CornerRadius="5"
+                    BorderBrush="#3E3E42" 
+                    BorderThickness="1"
+                    IsVisible="{Binding PreviewData.Count, Converter={x:Static ObjectConverters.IsNotNull}}">
+                <StackPanel Spacing="10">
+                    <TextBlock Text="3. Podgląd Danych (pierwsze 5 wierszy)" Classes="header"/>
+                    
+                    <ScrollViewer HorizontalScrollBarVisibility="Auto" 
+                                 MaxHeight="300">
+                        <ItemsControl ItemsSource="{Binding PreviewData}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border Background="#1E1E1E" 
+                                           Padding="10" 
+                                           Margin="0,0,0,5"
+                                           CornerRadius="3">
+                                        <ItemsControl ItemsSource="{Binding}">
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate>
+                                                    <StackPanel Orientation="Horizontal" Spacing="5">
+                                                        <TextBlock Text="{Binding Key}" 
+                                                                  FontWeight="Bold" 
+                                                                  Foreground="#007ACC"
+                                                                  Width="150"/>
+                                                        <TextBlock Text="{Binding Value}" 
+                                                                  Foreground="#CCCCCC"/>
+                                                    </StackPanel>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
+                </StackPanel>
+            </Border>
+
+            <!-- SEKCJA 4: Import -->
+            <Border Background="#2D2D30" 
+                    Padding="15" 
+                    CornerRadius="5"
+                    BorderBrush="#3E3E42" 
+                    BorderThickness="1"
+                    IsVisible="{Binding FilePath, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+                <StackPanel Spacing="10">
+                    <TextBlock Text="4. Import do Bazy Danych" Classes="header"/>
+                    
+                    <Button Content="⬇️ Importuj Produkty" 
+                            Command="{Binding ImportCommand}"
+                            Background="#28A745"
+                            HorizontalAlignment="Left"/>
+
+                    <!-- Progress Bar -->
+                    <StackPanel Spacing="5" 
+                               IsVisible="{Binding IsImporting}">
+                        <ProgressBar Value="{Binding ImportProgress}" 
+                                    Minimum="0" 
+                                    Maximum="100"
+                                    Height="8"
+                                    Foreground="#007ACC"/>
+                        <TextBlock Text="{Binding ImportStatus}" 
+                                  Foreground="#007ACC"
+                                  FontStyle="Italic"/>
+                    </StackPanel>
+
+                    <TextBlock Text="⚠️ Import może zaktualizować istniejące produkty (dopasowanie po kodzie)." 
+                              Foreground="#FFA500"
+                              FontSize="11"
+                              FontStyle="Italic"/>
+                </StackPanel>
+            </Border>
+
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

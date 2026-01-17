@@ -1,0 +1,720 @@
+using Avalonia.Controls;
+using Avalonia.Platform.Storage;
+using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
+using MsBox.Avalonia;
+using MsBox.Avalonia.Enums;
+using Ofertomator.Models;
+using Ofertomator.Services;
+using System;
+using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.Collections.Specialized;
+using System.Diagnostics;
+using System.Linq;
+using System.Threading.Tasks;
+
+namespace Ofertomator.ViewModels;
+
+/// <summary>
+/// ViewModel dla generatora ofert - trójkolumnowy widok
+/// Lewa: Kategorie | Środkowa: Produkty | Prawa: Oferta/Koszyk
+/// </summary>
+public partial class OfferGeneratorViewModel : ViewModelBase
+{
+    private readonly DatabaseService _databaseService;
+    private readonly IPdfService _pdfService;
+    private readonly Func<Window?> _getMainWindow;
+
+    #region Observable Properties
+
+    /// <summary>
+    /// Lista wszystkich kategorii (lewa kolumna)
+    /// </summary>
+    [ObservableProperty]
+    private ObservableCollection<Category> _categories = new();
+
+    /// <summary>
+    /// Wybrana kategoria (highlight w lewej kolumnie)
+    /// </summary>
+    [ObservableProperty]
+    private Category? _selectedCategory;
+
+    /// <summary>
+    /// Produkty do wyświetlenia w środkowej kolumnie
+    /// Filtrowane: tylko z wybranej kategorii + bez produktów już w ofercie
+    /// </summary>
+    [ObservableProperty]
+    private ObservableCollection<Product> _sourceProducts = new();
+
+    /// <summary>
+    /// Wszystkie produkty z wybranej kategorii (przed filtrowaniem)
+    /// </summary>
+    private List<Product> _allProductsInCategory = new();
+
+    /// <summary>
+    /// Query wyszukiwania dla środkowej kolumny (lokalny filtr)
+    /// </summary>
+    [ObservableProperty]
+    private string _searchQuery = string.Empty;
+
+    /// <summary>
+    /// Produkty dodane do oferty (prawa kolumna - koszyk)
+    /// </summary>
+    [ObservableProperty]
+    private ObservableCollection<SavedOfferItem> _offerItems = new();
+
+    /// <summary>
+    /// Wybrany produkt w środkowej kolumnie
+    /// </summary>
+    [ObservableProperty]
+    private Product? _selectedSourceProduct;
+
+    /// <summary>
+    /// Wybrany item w ofercie (prawa kolumna)
+    /// </summary>
+    [ObservableProperty]
+    private SavedOfferItem? _selectedOfferItem;
+
+    [ObservableProperty]
+    private bool _isBusy;
+
+    [ObservableProperty]
+    private string _statusMessage = "Gotowy";
+
+    #endregion
+
+    #region Computed Properties - Podsumowanie Oferty
+
+    /// <summary>
+    /// Suma netto całej oferty
+    /// </summary>
+    public decimal TotalOfferNet => OfferItems.Sum(item => item.TotalNet);
+
+    /// <summary>
+    /// Suma VAT całej oferty
+    /// </summary>
+    public decimal TotalOfferVat => OfferItems.Sum(item => item.VatAmount);
+
+    /// <summary>
+    /// Suma brutto całej oferty
+    /// </summary>
+    public decimal TotalOfferGross => OfferItems.Sum(item => item.TotalGross);
+
+    /// <summary>
+    /// Liczba pozycji w ofercie
+    /// </summary>
+    public int OfferItemsCount => OfferItems.Count;
+
+    /// <summary>
+    /// Info: "Pozycji w ofercie: X"
+    /// </summary>
+    public string OfferItemsInfo => $"Pozycji w ofercie: {OfferItemsCount}";
+
+    #endregion
+
+    #region Constructor
+
+    public OfferGeneratorViewModel(DatabaseService databaseService, IPdfService pdfService, Func<Window?> getMainWindow)
+    {
+        _databaseService = databaseService;
+        _pdfService = pdfService;
+        _getMainWindow = getMainWindow;
+
+        // Subskrybuj zmiany w kolekcji OfferItems
+        OfferItems.CollectionChanged += OnOfferItemsCollectionChanged;
+
+        // Inicjalizacja
+        _ = InitializeAsync();
+    }
+
+    #endregion
+
+    #region Initialization
+
+    /// <summary>
+    /// Inicjalizacja ViewModelu - ładowanie kategorii
+    /// </summary>
+    private async Task InitializeAsync()
+    {
+        try
+        {
+            IsBusy = true;
+            StatusMessage = "Ładowanie kategorii...";
+
+            await LoadCategoriesAsync();
+
+            StatusMessage = "Gotowy";
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Błąd inicjalizacji: {ex.Message}";
+        }
+        finally
+        {
+            IsBusy = false;
+        }
+    }
+
+    /// <summary>
+    /// Ładuje wszystkie kategorie z bazy
+    /// </summary>
+    private async Task LoadCategoriesAsync()
+    {
+        var categories = await _databaseService.GetCategoriesAsync();
+
+        Categories.Clear();
+        foreach (var category in categories)
+        {
+            Categories.Add(category);
+        }
+
+        StatusMessage = $"Załadowano {Categories.Count} kategorii";
+
+        // Automatycznie wybierz pierwszą kategorię
+        if (Categories.Count > 0 && SelectedCategory == null)
+        {
+            SelectedCategory = Categories[0];
+        }
+    }
+
+    #endregion
+
+    #region Property Changed Handlers
+
+    /// <summary>
+    /// Handler zmiany wybranej kategorii - ładuje produkty tej kategorii
+    /// </summary>
+    partial void OnSelectedCategoryChanged(Category? value)
+    {
+        if (value != null)
+        {
+            _ = LoadProductsForCategoryAsync(value.Id);
+        }
+        else
+        {
+            SourceProducts.Clear();
+            _allProductsInCategory.Clear();
+        }
+    }
+
+    /// <summary>
+    /// Handler zmiany query wyszukiwania - filtruje produkty lokalnie
+    /// </summary>
+    partial void OnSearchQueryChanged(string value)
+    {
+        FilterSourceProducts();
+    }
+
+    /// <summary>
+    /// Handler zmiany kolekcji OfferItems - aktualizuje sumy
+    /// </summary>
+    private void OnOfferItemsCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
+    {
+        // Nowe itemy - subskrybuj PropertyChanged dla live updates
+        if (e.NewItems != null)
+        {
+            foreach (SavedOfferItem item in e.NewItems)
+            {
+                item.PropertyChanged += OnOfferItemPropertyChanged;
+            }
+        }
+
+        // Usunięte itemy - odsubskrybuj
+        if (e.OldItems != null)
+        {
+            foreach (SavedOfferItem item in e.OldItems)
+            {
+                item.PropertyChanged -= OnOfferItemPropertyChanged;
+            }
+        }
+
+        // Aktualizuj podsumowanie
+        UpdateOfferSummary();
+
+        // Odśwież dostępne produkty (produkty w ofercie znikają ze środkowej kolumny)
+        FilterSourceProducts();
+    }
+
+    /// <summary>
+    /// Handler zmiany property w SavedOfferItem (Quantity, Margin)
+    /// Aktualizuje podsumowanie w czasie rzeczywistym
+    /// </summary>
+    private void OnOfferItemPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+    {
+        // Jeśli zmieniono Quantity lub Margin, zaktualizuj podsumowanie
+        if (e.PropertyName == nameof(SavedOfferItem.Quantity) ||
+            e.PropertyName == nameof(SavedOfferItem.Margin) ||
+            e.PropertyName == nameof(SavedOfferItem.TotalGross))
+        {
+            UpdateOfferSummary();
+        }
+    }
+
+    /// <summary>
+    /// Aktualizuje computed properties podsumowania oferty
+    /// </summary>
+    private void UpdateOfferSummary()
+    {
+        OnPropertyChanged(nameof(TotalOfferNet));
+        OnPropertyChanged(nameof(TotalOfferVat));
+        OnPropertyChanged(nameof(TotalOfferGross));
+        OnPropertyChanged(nameof(OfferItemsCount));
+        OnPropertyChanged(nameof(OfferItemsInfo));
+    }
+
+    #endregion
+
+    #region Loading Products
+
+    /// <summary>
+    /// Ładuje produkty dla wybranej kategorii
+    /// </summary>
+    private async Task LoadProductsForCategoryAsync(int categoryId)
+    {
+        try
+        {
+            IsBusy = true;
+            StatusMessage = "Ładowanie produktów...";
+
+            // Pobierz wszystkie produkty w kategorii
+            var products = await _databaseService.GetProductsByCategoryAsync(categoryId);
+            _allProductsInCategory = products.ToList();
+
+            // Zastosuj filtry
+            FilterSourceProducts();
+
+            StatusMessage = $"Załadowano {_allProductsInCategory.Count} produktów";
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Błąd ładowania produktów: {ex.Message}";
+        }
+        finally
+        {
+            IsBusy = false;
+        }
+    }
+
+    /// <summary>
+    /// Filtruje produkty do wyświetlenia w środkowej kolumnie:
+    /// 1. Filtruje po search query (nazwa, kod)
+    /// 2. Ukrywa produkty już dodane do oferty
+    /// </summary>
+    private void FilterSourceProducts()
+    {
+        // Pobierz ID produktów już w ofercie
+        var productsInOfferIds = new HashSet<int>(
+            OfferItems.Where(i => i.ProductId.HasValue)
+                     .Select(i => i.ProductId!.Value)
+        );
+
+        // Filtruj produkty
+        var filtered = _allProductsInCategory
+            .Where(p =>
+            {
+                // Ukryj jeśli już w ofercie
+                if (productsInOfferIds.Contains(p.Id))
+                    return false;
+
+                // Filtruj po search query
+                if (!string.IsNullOrWhiteSpace(SearchQuery))
+                {
+                    var query = SearchQuery.ToLower();
+                    return (p.Name?.ToLower().Contains(query) ?? false) ||
+                           (p.Code?.ToLower().Contains(query) ?? false);
+                }
+
+                return true;
+            })
+            .ToList();
+
+        // Aktualizuj kolekcję
+        SourceProducts.Clear();
+        foreach (var product in filtered)
+        {
+            SourceProducts.Add(product);
+        }
+    }
+
+    #endregion
+
+    #region Commands - Zarządzanie Ofertą
+
+    /// <summary>
+    /// Komenda: Dodaj produkt do oferty
+    /// </summary>
+    [RelayCommand]
+    private void AddProductToOffer(Product? product)
+    {
+        if (product == null)
+        {
+            StatusMessage = "Wybierz produkt do dodania";
+            return;
+        }
+
+        try
+        {
+            // Sprawdź czy produkt już w ofercie
+            if (OfferItems.Any(i => i.ProductId == product.Id))
+            {
+                StatusMessage = $"Produkt '{product.Name}' już jest w ofercie";
+                return;
+            }
+
+            // Pobierz domyślną marżę z kategorii
+            var defaultMargin = SelectedCategory?.DefaultMargin ?? 0m;
+
+            // Utwórz nowy SavedOfferItem
+            var offerItem = new SavedOfferItem
+            {
+                ProductId = product.Id,
+                Name = product.Name,
+                CategoryName = product.Category?.Name,
+                Unit = product.Unit ?? "szt.",
+                PurchasePriceNet = product.PurchasePriceNet,
+                VatRate = product.VatRate,
+                Margin = defaultMargin, // Domyślna marża z kategorii
+                Quantity = 1m // Domyślna ilość
+            };
+
+            // Dodaj do oferty
+            OfferItems.Add(offerItem);
+
+            StatusMessage = $"Dodano: {product.Name}";
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Błąd dodawania produktu: {ex.Message}";
+        }
+    }
+
+    /// <summary>
+    /// Komenda: Usuń produkt z oferty
+    /// </summary>
+    [RelayCommand]
+    private void RemoveFromOffer(SavedOfferItem? item)
+    {
+        if (item == null)
+        {
+            StatusMessage = "Wybierz pozycję do usunięcia";
+            return;
+        }
+
+        try
+        {
+            OfferItems.Remove(item);
+            StatusMessage = $"Usunięto: {item.Name}";
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Błąd usuwania: {ex.Message}";
+        }
+    }
+
+    /// <summary>
+    /// Komenda: Wyczyść całą ofertę
+    /// </summary>
+    [RelayCommand]
+    private void ClearOffer()
+    {
+        if (OfferItems.Count == 0)
+        {
+            StatusMessage = "Oferta jest już pusta";
+            return;
+        }
+
+        try
+        {
+            var count = OfferItems.Count;
+            OfferItems.Clear();
+            StatusMessage = $"Usunięto {count} pozycji z oferty";
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Błąd czyszczenia oferty: {ex.Message}";
+        }
+    }
+
+    /// <summary>
+    /// Komenda: Odśwież listę kategorii
+    /// </summary>
+    [RelayCommand]
+    private async Task RefreshAsync()
+    {
+        await LoadCategoriesAsync();
+    }
+
+    /// <summary>
+    /// Komenda: Generuj PDF z ofertą
+    /// </summary>
+    [RelayCommand]
+    private async Task GeneratePdfAsync()
+    {
+        // Walidacja: oferta nie może być pusta
+        if (OfferItems.Count == 0)
+        {
+            var emptyBox = MessageBoxManager.GetMessageBoxStandard(
+                "Pusta oferta",
+                "Nie można wygenerować PDF - oferta jest pusta. Dodaj produkty do oferty.",
+                ButtonEnum.Ok,
+                Icon.Warning);
+            await emptyBox.ShowAsync();
+            return;
+        }
+
+        try
+        {
+            IsBusy = true;
+            StatusMessage = "Przygotowywanie danych...";
+
+            // Pobierz dane wizytówki
+            var businessCard = await _databaseService.GetBusinessCardAsync();
+            if (businessCard == null)
+            {
+                StatusMessage = "Brak danych wizytówki - tworzę domyślne";
+                businessCard = new BusinessCard
+                {
+                    Company = "Moja Firma",
+                    FullName = "Jan Kowalski",
+                    Phone = "+48 123 456 789",
+                    Email = "kontakt@firma.pl"
+                };
+            }
+
+            // Otwórz dialog zapisu pliku
+            var mainWindow = _getMainWindow?.Invoke();
+            if (mainWindow == null)
+            {
+                StatusMessage = "Błąd: Brak dostępu do okna głównego";
+                return;
+            }
+
+            var storageProvider = mainWindow.StorageProvider;
+            var file = await storageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
+            {
+                Title = "Zapisz ofertę jako PDF",
+                DefaultExtension = "pdf",
+                SuggestedFileName = $"Oferta_{DateTime.Now:yyyyMMdd_HHmmss}.pdf",
+                FileTypeChoices = new[]
+                {
+                    new FilePickerFileType("PDF Document")
+                    {
+                        Patterns = new[] { "*.pdf" }
+                    }
+                }
+            });
+
+            if (file == null)
+            {
+                StatusMessage = "Anulowano zapis PDF";
+                return;
+            }
+
+            var filePath = file.Path.LocalPath;
+
+            // Generuj PDF w tle
+            StatusMessage = "Generowanie PDF...";
+            await Task.Run(async () =>
+            {
+                await _pdfService.GenerateOfferPdfAsync(OfferItems, businessCard, filePath);
+            });
+
+            StatusMessage = "PDF wygenerowany pomyślnie!";
+
+            // Pytanie o otwarcie pliku
+            var openBox = MessageBoxManager.GetMessageBoxStandard(
+                "PDF wygenerowany",
+                $"Plik PDF został zapisany:\n{filePath}\n\nCzy chcesz otworzyć plik?",
+                ButtonEnum.YesNo,
+                Icon.Success);
+
+            var result = await openBox.ShowAsync();
+
+            if (result == ButtonResult.Yes)
+            {
+                // Otwórz plik w domyślnej aplikacji
+                Process.Start(new ProcessStartInfo
+                {
+                    FileName = filePath,
+                    UseShellExecute = true
+                });
+            }
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Błąd generowania PDF: {ex.Message}";
+            
+            var errorBox = MessageBoxManager.GetMessageBoxStandard(
+                "Błąd",
+                $"Nie udało się wygenerować PDF:\n{ex.Message}",
+                ButtonEnum.Ok,
+                Icon.Error);
+            await errorBox.ShowAsync();
+        }
+        finally
+        {
+            IsBusy = false;
+        }
+    }
+
+    #endregion
+
+    #region Zapisywanie i Wczytywanie Ofert
+
+    /// <summary>
+    /// Aktualnie edytowana oferta (null = nowa oferta)
+    /// </summary>
+    [ObservableProperty]
+    private SavedOffer? _currentOffer;
+
+    /// <summary>
+    /// Zapisz ofertę (nową lub edytowaną)
+    /// </summary>
+    [RelayCommand]
+    private async Task SaveOfferAsync()
+    {
+        try
+        {
+            if (OfferItems.Count == 0)
+            {
+                var msgBox = MessageBoxManager.GetMessageBoxStandard(
+                    "Błąd",
+                    "Oferta nie zawiera żadnych pozycji. Dodaj produkty przed zapisaniem.",
+                    ButtonEnum.Ok,
+                    Icon.Warning);
+                await msgBox.ShowWindowDialogAsync(_getMainWindow());
+                return;
+            }
+
+            // Otwórz dialog z tytułem
+            var dialog = new Views.InputDialog(
+                "Zapisz ofertę",
+                "Wprowadź tytuł oferty:",
+                "np. Oferta dla klienta ABC",
+                CurrentOffer?.Title ?? "");
+            
+            var owner = _getMainWindow();
+            if (owner == null) return;
+
+            await dialog.ShowDialog(owner);
+
+            if (!dialog.DialogResult || string.IsNullOrWhiteSpace(dialog.InputValue))
+                return;
+
+            // Przygotuj nagłówek oferty
+            var offer = CurrentOffer ?? new SavedOffer();
+            offer.Title = dialog.InputValue.Trim();
+            offer.CreatedDate = DateTime.Now;
+
+            // Przygotuj pozycje oferty
+            var items = OfferItems.Select(oi => new SavedOfferItem
+            {
+                OfferId = offer.Id,
+                ProductId = oi.ProductId,
+                Name = oi.Name,
+                CategoryName = oi.CategoryName,
+                Unit = oi.Unit,
+                PurchasePriceNet = oi.PurchasePriceNet,
+                VatRate = oi.VatRate,
+                Margin = oi.Margin,
+                Quantity = oi.Quantity
+            }).ToList();
+
+            // Zapisz w bazie (transakcja)
+            var offerId = await _databaseService.SaveOfferAsync(offer, items);
+            offer.Id = offerId;
+            CurrentOffer = offer;
+
+            var successBox = MessageBoxManager.GetMessageBoxStandard(
+                "Sukces",
+                $"Oferta '{offer.Title}' została zapisana pomyślnie.",
+                ButtonEnum.Ok,
+                Icon.Success);
+            await successBox.ShowWindowDialogAsync(_getMainWindow());
+        }
+        catch (Exception ex)
+        {
+            var errorBox = MessageBoxManager.GetMessageBoxStandard(
+                "Błąd",
+                $"Nie udało się zapisać oferty:\n{ex.Message}",
+                ButtonEnum.Ok,
+                Icon.Error);
+            await errorBox.ShowWindowDialogAsync(_getMainWindow());
+        }
+    }
+
+    /// <summary>
+    /// Wczytaj zapisaną ofertę do edycji
+    /// </summary>
+    public async Task LoadOfferAsync(SavedOffer offer, List<SavedOfferItem> items)
+    {
+        try
+        {
+            // Ustaw bieżącą ofertę (tryb edycji)
+            CurrentOffer = offer;
+
+            // Wyczyść obecną ofertę
+            OfferItems.Clear();
+
+            // Wczytaj pozycje
+            foreach (var item in items)
+            {
+                var offerItem = new SavedOfferItem
+                {
+                    ProductId = item.ProductId,
+                    Name = item.Name,
+                    CategoryName = item.CategoryName,
+                    Unit = item.Unit,
+                    PurchasePriceNet = item.PurchasePriceNet,
+                    VatRate = item.VatRate,
+                    Margin = item.Margin,
+                    Quantity = item.Quantity
+                };
+
+                OfferItems.Add(offerItem);
+            }
+
+            // Odśwież filtry
+            FilterSourceProducts();
+        }
+        catch (Exception ex)
+        {
+            var errorBox = MessageBoxManager.GetMessageBoxStandard(
+                "Błąd",
+                $"Nie udało się wczytać oferty:\n{ex.Message}",
+                ButtonEnum.Ok,
+                Icon.Error);
+            await errorBox.ShowWindowDialogAsync(_getMainWindow());
+        }
+    }
+
+    /// <summary>
+    /// Nowa oferta (wyczyść wszystko)
+    /// </summary>
+    [RelayCommand]
+    private void NewOffer()
+    {
+        CurrentOffer = null;
+        OfferItems.Clear();
+    }
+
+    #endregion
+
+    #region Cleanup
+
+    /// <summary>
+    /// Cleanup - odsubskrybuj eventy
+    /// </summary>
+    public void Cleanup()
+    {
+        OfferItems.CollectionChanged -= OnOfferItemsCollectionChanged;
+
+        foreach (var item in OfferItems)
+        {
+            item.PropertyChanged -= OnOfferItemPropertyChanged;
+        }
+    }
+
+    #endregion
+}

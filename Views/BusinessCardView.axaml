@@ -1,0 +1,139 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="clr-namespace:Ofertomator.ViewModels"
+             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="600"
+             x:Class="Ofertomator.Views.BusinessCardView"
+             x:DataType="vm:BusinessCardViewModel">
+
+    <Design.DataContext>
+        <vm:BusinessCardViewModel />
+    </Design.DataContext>
+
+    <Grid RowDefinitions="Auto,*,Auto" Margin="20">
+        
+        <!-- Header -->
+        <StackPanel Grid.Row="0" Margin="0,0,0,20">
+            <TextBlock Text="🏢 Moja Firma" 
+                      FontSize="24" 
+                      FontWeight="Bold"
+                      Foreground="#007ACC"/>
+            <TextBlock Text="Skonfiguruj dane kontaktowe wyświetlane w nagłówku ofert PDF" 
+                      FontSize="14" 
+                      Foreground="#B0B0B0"
+                      Margin="0,5,0,0"/>
+        </StackPanel>
+
+        <!-- Formularz -->
+        <Border Grid.Row="1" 
+                Background="#2D2D30" 
+                Padding="30" 
+                CornerRadius="8"
+                MaxWidth="600"
+                HorizontalAlignment="Left">
+            <StackPanel Spacing="20">
+                
+                <!-- Nazwa Firmy -->
+                <StackPanel>
+                    <TextBlock Text="Nazwa Firmy *" 
+                              FontWeight="SemiBold" 
+                              Margin="0,0,0,5"
+                              Foreground="White"/>
+                    <TextBox Text="{Binding Company}" 
+                            Watermark="np. ABC Sp. z o.o."
+                            Width="500"/>
+                    <TextBlock Text="(wymagane - pojawi się w nagłówku PDF)" 
+                              FontSize="11" 
+                              Foreground="#808080"
+                              Margin="0,3,0,0"/>
+                </StackPanel>
+
+                <!-- Imię i Nazwisko -->
+                <StackPanel>
+                    <TextBlock Text="Imię i Nazwisko" 
+                              FontWeight="SemiBold" 
+                              Margin="0,0,0,5"
+                              Foreground="White"/>
+                    <TextBox Text="{Binding FullName}" 
+                            Watermark="np. Jan Kowalski"
+                            Width="500"/>
+                </StackPanel>
+
+                <!-- Telefon -->
+                <StackPanel>
+                    <TextBlock Text="Telefon" 
+                              FontWeight="SemiBold" 
+                              Margin="0,0,0,5"
+                              Foreground="White"/>
+                    <TextBox Text="{Binding Phone}" 
+                            Watermark="np. +48 123 456 789"
+                            Width="500"/>
+                </StackPanel>
+
+                <!-- Email -->
+                <StackPanel>
+                    <TextBlock Text="Email *" 
+                              FontWeight="SemiBold" 
+                              Margin="0,0,0,5"
+                              Foreground="White"/>
+                    <TextBox Text="{Binding Email}" 
+                            Watermark="np. kontakt@firma.pl"
+                            Width="500"/>
+                    <TextBlock Text="(wymagane - format: adres@domena.pl)" 
+                              FontSize="11" 
+                              Foreground="#808080"
+                              Margin="0,3,0,0"/>
+                </StackPanel>
+
+                <!-- Info Box -->
+                <Border Background="#1E3A5F" 
+                       Padding="15" 
+                       CornerRadius="5"
+                       Margin="0,10,0,0">
+                    <StackPanel Orientation="Horizontal" Spacing="10">
+                        <TextBlock Text="ℹ️" FontSize="18" VerticalAlignment="Top"/>
+                        <TextBlock Text="Te dane będą widoczne w nagłówku każdego wygenerowanego PDF."
+                                  TextWrapping="Wrap"
+                                  Foreground="White"
+                                  MaxWidth="450"/>
+                    </StackPanel>
+                </Border>
+
+                <!-- Przyciski -->
+                <StackPanel Orientation="Horizontal" Spacing="10" Margin="0,10,0,0">
+                    <Button Content="💾 Zapisz zmiany" 
+                           Command="{Binding SaveCommand}"
+                           Background="#10A647"
+                           Foreground="White"
+                           Padding="20,10"
+                           FontWeight="SemiBold"
+                           IsEnabled="{Binding !IsBusy}"/>
+                </StackPanel>
+
+            </StackPanel>
+        </Border>
+
+        <!-- Status Bar -->
+        <Border Grid.Row="2" 
+                Background="#2D2D30" 
+                Padding="10" 
+                Margin="0,20,0,0"
+                CornerRadius="4">
+            <Grid ColumnDefinitions="Auto,*">
+                <ProgressBar Grid.Column="0" 
+                            IsIndeterminate="True" 
+                            Width="100" 
+                            Height="4"
+                            IsVisible="{Binding IsBusy}"
+                            Foreground="#007ACC"
+                            Margin="0,0,10,0"/>
+                <TextBlock Grid.Column="1" 
+                          Text="{Binding StatusMessage}" 
+                          VerticalAlignment="Center"
+                          Foreground="White"/>
+            </Grid>
+        </Border>
+
+    </Grid>
+</UserControl>

@@ -1,0 +1,383 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="clr-namespace:Ofertomator.ViewModels"
+             mc:Ignorable="d" d:DesignWidth="1200" d:DesignHeight="800"
+             x:Class="Ofertomator.Views.OfferGeneratorView"
+             x:DataType="vm:OfferGeneratorViewModel">
+
+    <Design.DataContext>
+        <vm:OfferGeneratorViewModel />
+    </Design.DataContext>
+
+    <UserControl.Styles>
+        <!-- Dark Theme Styling -->
+        <Style Selector="TextBlock">
+            <Setter Property="Foreground" Value="White"/>
+        </Style>
+
+        <Style Selector="TextBlock.header">
+            <Setter Property="FontSize" Value="16"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="Foreground" Value="#007ACC"/>
+            <Setter Property="Margin" Value="0,0,0,10"/>
+        </Style>
+
+        <Style Selector="ListBox">
+            <Setter Property="Background" Value="#2D2D30"/>
+            <Setter Property="BorderBrush" Value="#3E3E42"/>
+            <Setter Property="BorderThickness" Value="1"/>
+        </Style>
+
+        <Style Selector="ListBoxItem">
+            <Setter Property="Padding" Value="10"/>
+        </Style>
+
+        <Style Selector="ListBoxItem:selected /template/ ContentPresenter">
+            <Setter Property="Background" Value="#007ACC"/>
+        </Style>
+
+        <Style Selector="TextBox">
+            <Setter Property="Background" Value="#2D2D30"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderBrush" Value="#3E3E42"/>
+        </Style>
+
+        <Style Selector="Button">
+            <Setter Property="Background" Value="#0E639C"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="10,5"/>
+            <Setter Property="Cursor" Value="Hand"/>
+        </Style>
+
+        <Style Selector="Button:pointerover">
+            <Setter Property="Background" Value="#1177BB"/>
+        </Style>
+
+        <Style Selector="Button.add">
+            <Setter Property="Background" Value="#0E8C3A"/>
+        </Style>
+
+        <Style Selector="Button.add:pointerover">
+            <Setter Property="Background" Value="#10A647"/>
+        </Style>
+
+        <Style Selector="Button.remove">
+            <Setter Property="Background" Value="#C42B1C"/>
+        </Style>
+
+        <Style Selector="Button.remove:pointerover">
+            <Setter Property="Background" Value="#E74856"/>
+        </Style>
+
+        <Style Selector="NumericUpDown">
+            <Setter Property="Background" Value="#2D2D30"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderBrush" Value="#3E3E42"/>
+        </Style>
+
+        <Style Selector="Border.column">
+            <Setter Property="Background" Value="#1E1E1E"/>
+            <Setter Property="Padding" Value="15"/>
+            <Setter Property="Margin" Value="5"/>
+            <Setter Property="CornerRadius" Value="5"/>
+        </Style>
+    </UserControl.Styles>
+
+    <Grid RowDefinitions="Auto,*,Auto">
+
+        <!-- Header -->
+        <StackPanel Grid.Row="0" Margin="10">
+            <TextBlock Text="Generator Ofert" 
+                      FontSize="24" 
+                      FontWeight="Bold" 
+                      Foreground="#007ACC"/>
+            <TextBlock Text="{Binding StatusMessage}" 
+                      FontSize="12" 
+                      Foreground="#B0B0B0" 
+                      Margin="0,5,0,0"/>
+        </StackPanel>
+
+        <!-- 3-Column Layout -->
+        <Grid Grid.Row="1" ColumnDefinitions="*,*,*" Margin="10,0,10,10">
+
+            <!-- LEWA KOLUMNA: Kategorie -->
+            <Border Grid.Column="0" Classes="column">
+                <Grid RowDefinitions="Auto,Auto,*">
+                    <TextBlock Grid.Row="0" Text="📁 Kategorie" Classes="header"/>
+
+                    <Button Grid.Row="1" 
+                           Content="🔄 Odśwież" 
+                           Command="{Binding RefreshCommand}"
+                           HorizontalAlignment="Stretch"
+                           Margin="0,0,0,10"/>
+
+                    <ListBox Grid.Row="2"
+                            ItemsSource="{Binding Categories}"
+                            SelectedItem="{Binding SelectedCategory}">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <StackPanel>
+                                    <TextBlock Text="{Binding Name}" 
+                                              FontWeight="SemiBold" 
+                                              FontSize="14"/>
+                                    <TextBlock Text="{Binding DefaultMargin, StringFormat='Marża: {0}%'}" 
+                                              FontSize="11" 
+                                              Foreground="#B0B0B0"/>
+                                </StackPanel>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                </Grid>
+            </Border>
+
+            <!-- ŚRODKOWA KOLUMNA: Produkty -->
+            <Border Grid.Column="1" Classes="column">
+                <Grid RowDefinitions="Auto,Auto,Auto,*">
+                    <TextBlock Grid.Row="0" Text="📦 Produkty" Classes="header"/>
+
+                    <!-- Search Bar -->
+                    <TextBox Grid.Row="1" 
+                            Text="{Binding SearchQuery}"
+                            Watermark="🔍 Szukaj produktu..."
+                            Margin="0,0,0,10"/>
+
+                    <!-- Info Bar -->
+                    <StackPanel Grid.Row="2" 
+                               Orientation="Horizontal" 
+                               Margin="0,0,0,10">
+                        <TextBlock Text="{Binding SourceProducts.Count, StringFormat='Produktów: {0}'}" 
+                                  FontSize="12" 
+                                  Foreground="#B0B0B0"/>
+                    </StackPanel>
+
+                    <!-- Products List -->
+                    <ListBox Grid.Row="3"
+                            ItemsSource="{Binding SourceProducts}"
+                            SelectedItem="{Binding SelectedSourceProduct}">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <Grid ColumnDefinitions="*,Auto">
+                                    <StackPanel Grid.Column="0">
+                                        <TextBlock Text="{Binding Name}" 
+                                                  FontWeight="SemiBold" 
+                                                  FontSize="13"/>
+                                        <StackPanel Orientation="Horizontal" Spacing="10">
+                                            <TextBlock Text="{Binding PurchasePriceNet, StringFormat='Cena: {0:N2} PLN'}" 
+                                                      FontSize="11" 
+                                                      Foreground="#B0B0B0"/>
+                                            <TextBlock Text="{Binding VatRate, StringFormat='VAT: {0}%'}" 
+                                                      FontSize="11" 
+                                                      Foreground="#B0B0B0"/>
+                                        </StackPanel>
+                                    </StackPanel>
+
+                                    <!-- Add Button -->
+                                    <Button Grid.Column="1" 
+                                           Content="➕" 
+                                           Classes="add"
+                                           Command="{Binding $parent[UserControl].((vm:OfferGeneratorViewModel)DataContext).AddProductToOfferCommand}"
+                                           CommandParameter="{Binding}"
+                                           ToolTip.Tip="Dodaj do oferty"
+                                           Padding="8,4"/>
+                                </Grid>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                </Grid>
+            </Border>
+
+            <!-- PRAWA KOLUMNA: Oferta/Koszyk -->
+            <Border Grid.Column="2" Classes="column">
+                <Grid RowDefinitions="Auto,Auto,*,Auto">
+                    <TextBlock Grid.Row="0" Text="🛒 Oferta" Classes="header"/>
+
+                    <!-- Action Buttons -->
+                    <StackPanel Grid.Row="1" 
+                               Orientation="Horizontal" 
+                               Spacing="10" 
+                               Margin="0,0,0,10">
+                        <TextBlock Text="{Binding OfferItemsInfo}" 
+                                  VerticalAlignment="Center" 
+                                  FontSize="12" 
+                                  Foreground="#B0B0B0"/>
+                        <Button Content="💾 Zapisz Ofertę" 
+                               Command="{Binding SaveOfferCommand}"
+                               Background="#28A745"
+                               IsEnabled="{Binding !IsBusy}"
+                               ToolTip.Tip="Zapisz ofertę do bazy danych"/>
+                        <Button Content="📄 Generuj PDF" 
+                               Command="{Binding GeneratePdfCommand}"
+                               Background="#C8102E"
+                               IsEnabled="{Binding !IsBusy}"
+                               ToolTip.Tip="Wygeneruj ofertę w formacie PDF"/>
+                        <Button Content="🆕 Nowa Oferta" 
+                               Command="{Binding NewOfferCommand}"
+                               Background="#007ACC"
+                               ToolTip.Tip="Rozpocznij nową ofertę (wyczyść wszystko)"/>
+                        <Button Content="🗑️ Wyczyść" 
+                               Command="{Binding ClearOfferCommand}"
+                               Classes="remove"
+                               HorizontalAlignment="Right"/>
+                    </StackPanel>
+
+                    <!-- Offer Items List -->
+                    <ScrollViewer Grid.Row="2">
+                        <ItemsControl ItemsSource="{Binding OfferItems}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border Background="#2D2D30" 
+                                           Padding="10" 
+                                           Margin="0,0,0,10" 
+                                           CornerRadius="5">
+                                        <Grid RowDefinitions="Auto,Auto,Auto,Auto">
+                                            
+                                            <!-- Header - Nazwa i Usuń -->
+                                            <Grid Grid.Row="0" ColumnDefinitions="*,Auto" Margin="0,0,0,5">
+                                                <TextBlock Grid.Column="0" 
+                                                          Text="{Binding Name}" 
+                                                          FontWeight="Bold" 
+                                                          FontSize="13"/>
+                                                <Button Grid.Column="1" 
+                                                       Content="❌" 
+                                                       Classes="remove"
+                                                       Command="{Binding $parent[UserControl].((vm:OfferGeneratorViewModel)DataContext).RemoveFromOfferCommand}"
+                                                       CommandParameter="{Binding}"
+                                                       ToolTip.Tip="Usuń z oferty"
+                                                       Padding="5,2"
+                                                       FontSize="10"/>
+                                            </Grid>
+
+                                            <!-- Edytowalne Pola: Ilość i Marża -->
+                                            <Grid Grid.Row="1" ColumnDefinitions="*,*" Margin="0,5,0,5">
+                                                <StackPanel Grid.Column="0" Margin="0,0,5,0">
+                                                    <TextBlock Text="Ilość:" 
+                                                              FontSize="11" 
+                                                              Foreground="#B0B0B0" 
+                                                              Margin="0,0,0,3"/>
+                                                    <NumericUpDown Value="{Binding Quantity}"
+                                                                  Minimum="0.01"
+                                                                  Maximum="9999"
+                                                                  Increment="1"
+                                                                  FormatString="F2"/>
+                                                </StackPanel>
+
+                                                <StackPanel Grid.Column="1" Margin="5,0,0,0">
+                                                    <TextBlock Text="Marża %:" 
+                                                              FontSize="11" 
+                                                              Foreground="#B0B0B0" 
+                                                              Margin="0,0,0,3"/>
+                                                    <NumericUpDown Value="{Binding Margin}"
+                                                                  Minimum="0"
+                                                                  Maximum="1000"
+                                                                  Increment="5"
+                                                                  FormatString="F0"/>
+                                                </StackPanel>
+                                            </Grid>
+
+                                            <!-- Ceny Kalkulowane -->
+                                            <StackPanel Grid.Row="2" Margin="0,5,0,0">
+                                                <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto,Auto">
+                                                    <TextBlock Grid.Row="0" Grid.Column="0" 
+                                                              Text="Cena jedn. netto:" 
+                                                              FontSize="11" 
+                                                              Foreground="#B0B0B0"/>
+                                                    <TextBlock Grid.Row="0" Grid.Column="1" 
+                                                              Text="{Binding SalePriceNet, StringFormat='{}{0:N2} PLN'}" 
+                                                              FontSize="11" 
+                                                              HorizontalAlignment="Right"/>
+
+                                                    <TextBlock Grid.Row="1" Grid.Column="0" 
+                                                              Text="Cena jedn. brutto:" 
+                                                              FontSize="11" 
+                                                              Foreground="#B0B0B0"/>
+                                                    <TextBlock Grid.Row="1" Grid.Column="1" 
+                                                              Text="{Binding SalePriceGross, StringFormat='{}{0:N2} PLN'}" 
+                                                              FontSize="11" 
+                                                              HorizontalAlignment="Right"/>
+
+                                                    <TextBlock Grid.Row="2" Grid.Column="0" 
+                                                              Text="Wartość brutto:" 
+                                                              FontSize="12" 
+                                                              FontWeight="Bold"/>
+                                                    <TextBlock Grid.Row="2" Grid.Column="1" 
+                                                              Text="{Binding TotalGross, StringFormat='{}{0:N2} PLN'}" 
+                                                              FontSize="12" 
+                                                              FontWeight="Bold" 
+                                                              Foreground="#10A647" 
+                                                              HorizontalAlignment="Right"/>
+                                                </Grid>
+                                            </StackPanel>
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
+
+                    <!-- Podsumowanie Oferty -->
+                    <Border Grid.Row="3" 
+                           Background="#007ACC" 
+                           Padding="15" 
+                           CornerRadius="5" 
+                           Margin="0,10,0,0">
+                        <StackPanel>
+                            <TextBlock Text="💰 Podsumowanie" 
+                                      FontSize="14" 
+                                      FontWeight="Bold" 
+                                      Margin="0,0,0,10"/>
+
+                            <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto,Auto,Auto">
+                                <TextBlock Grid.Row="0" Grid.Column="0" Text="Suma netto:" FontSize="12"/>
+                                <TextBlock Grid.Row="0" Grid.Column="1" 
+                                          Text="{Binding TotalOfferNet, StringFormat='{}{0:N2} PLN'}" 
+                                          FontSize="12" 
+                                          HorizontalAlignment="Right"/>
+
+                                <TextBlock Grid.Row="1" Grid.Column="0" Text="Suma VAT:" FontSize="12"/>
+                                <TextBlock Grid.Row="1" Grid.Column="1" 
+                                          Text="{Binding TotalOfferVat, StringFormat='{}{0:N2} PLN'}" 
+                                          FontSize="12" 
+                                          HorizontalAlignment="Right"/>
+
+                                <Rectangle Grid.Row="2" Grid.ColumnSpan="2" 
+                                          Height="1" 
+                                          Fill="White" 
+                                          Margin="0,5"/>
+
+                                <TextBlock Grid.Row="3" Grid.Column="0" 
+                                          Text="Suma brutto:" 
+                                          FontSize="16" 
+                                          FontWeight="Bold"/>
+                                <TextBlock Grid.Row="3" Grid.Column="1" 
+                                          Text="{Binding TotalOfferGross, StringFormat='{}{0:N2} PLN'}" 
+                                          FontSize="16" 
+                                          FontWeight="Bold" 
+                                          HorizontalAlignment="Right"/>
+                            </Grid>
+                        </StackPanel>
+                    </Border>
+                </Grid>
+            </Border>
+
+        </Grid>
+
+        <!-- Status Bar -->
+        <Border Grid.Row="2" 
+               Background="#007ACC" 
+               Padding="10,5">
+            <StackPanel Orientation="Horizontal" Spacing="10">
+                <ProgressBar IsIndeterminate="True" 
+                            Width="100" 
+                            Height="4" 
+                            IsVisible="{Binding IsBusy}"/>
+                <TextBlock Text="{Binding StatusMessage}" 
+                          VerticalAlignment="Center" 
+                          FontSize="12"/>
+            </StackPanel>
+        </Border>
+
+    </Grid>
+</UserControl>

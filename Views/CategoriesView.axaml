@@ -1,0 +1,145 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="clr-namespace:Ofertomator.ViewModels"
+             mc:Ignorable="d" d:DesignWidth="1000" d:DesignHeight="700"
+             x:Class="Ofertomator.Views.CategoriesView"
+             x:DataType="vm:CategoriesViewModel">
+
+    <Design.DataContext>
+        <vm:CategoriesViewModel />
+    </Design.DataContext>
+
+    <Grid RowDefinitions="Auto,Auto,*,Auto" Margin="20">
+        
+        <!-- Header -->
+        <StackPanel Grid.Row="0" Margin="0,0,0,15">
+            <TextBlock Text="📁 Kategorie Produktów" 
+                      FontSize="24" 
+                      FontWeight="Bold"
+                      Foreground="#007ACC"/>
+            <TextBlock Text="Zarządzaj kategoriami, które grupują produkty w ofercie PDF" 
+                      FontSize="14" 
+                      Foreground="#B0B0B0"
+                      Margin="0,5,0,0"/>
+        </StackPanel>
+
+        <!-- Toolbar -->
+        <Border Grid.Row="1" 
+                Background="#2D2D30" 
+                Padding="15" 
+                CornerRadius="8"
+                Margin="0,0,0,15">
+            <Grid ColumnDefinitions="Auto,*,Auto">
+                
+                <!-- Action Buttons -->
+                <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="10">
+                    <Button Content="➕ Dodaj Kategorię" 
+                           Command="{Binding AddCategoryCommand}"
+                           Background="#10A647"
+                           Foreground="White"
+                           Padding="12,8"
+                           FontWeight="SemiBold"/>
+                    <Button Content="✏️ Edytuj" 
+                           Command="{Binding EditCategoryCommand}"
+                           IsEnabled="{Binding SelectedCategory, Converter={x:Static ObjectConverters.IsNotNull}}"
+                           Background="#007ACC"
+                           Foreground="White"
+                           Padding="12,8"/>
+                    <Button Content="🗑️ Usuń" 
+                           Command="{Binding DeleteCategoryCommand}"
+                           IsEnabled="{Binding SelectedCategory, Converter={x:Static ObjectConverters.IsNotNull}}"
+                           Background="#E74856"
+                           Foreground="White"
+                           Padding="12,8"/>
+                </StackPanel>
+
+                <!-- Stats -->
+                <StackPanel Grid.Column="2" 
+                           Orientation="Horizontal" 
+                           Spacing="15"
+                           VerticalAlignment="Center">
+                    <TextBlock Text="{Binding CategoriesCount, StringFormat='Kategorii: {0}'}" 
+                              FontSize="13" 
+                              Foreground="#B0B0B0"
+                              VerticalAlignment="Center"/>
+                    <Button Content="🔄" 
+                           Command="{Binding RefreshCommand}"
+                           Background="#3E3E42"
+                           Foreground="White"
+                           Padding="10,8"
+                           ToolTip.Tip="Odśwież listę"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- DataGrid -->
+        <Border Grid.Row="2" 
+                Background="#2D2D30" 
+                CornerRadius="8"
+                Padding="1">
+            <DataGrid ItemsSource="{Binding Categories}"
+                     SelectedItem="{Binding SelectedCategory}"
+                     IsReadOnly="True"
+                     GridLinesVisibility="Horizontal"
+                     Background="#2D2D30"
+                     RowBackground="#2D2D30"
+                     CanUserReorderColumns="False"
+                     CanUserResizeColumns="True"
+                     CanUserSortColumns="True"
+                     AutoGenerateColumns="False"
+                     SelectionMode="Single"
+                     RowHeight="32"
+                     MinHeight="100">
+                
+                <DataGrid.Columns>
+                    <DataGridTextColumn Header="ID" 
+                                       Binding="{Binding Id}" 
+                                       Width="80"
+                                       FontFamily="Consolas"/>
+                    
+                    <DataGridTextColumn Header="Nazwa Kategorii" 
+                                       Binding="{Binding Name}" 
+                                       Width="*"
+                                       MinWidth="200"/>
+                    
+                    <DataGridTextColumn Header="Domyślna Marża %" 
+                                       Binding="{Binding DefaultMargin, StringFormat='{}{0:F0}%'}" 
+                                       Width="150"
+                                       FontFamily="Consolas"/>
+                </DataGrid.Columns>
+
+                <!-- Row Style - Highlight selected -->
+                <DataGrid.Styles>
+                    <Style Selector="DataGridRow:selected /template/ Rectangle#BackgroundRectangle">
+                        <Setter Property="Fill" Value="#007ACC"/>
+                        <Setter Property="Opacity" Value="0.3"/>
+                    </Style>
+                </DataGrid.Styles>
+            </DataGrid>
+        </Border>
+
+        <!-- Status Bar -->
+        <Border Grid.Row="3" 
+                Background="#2D2D30" 
+                Padding="10" 
+                Margin="0,15,0,0"
+                CornerRadius="4">
+            <Grid ColumnDefinitions="Auto,*">
+                <ProgressBar Grid.Column="0" 
+                            IsIndeterminate="True" 
+                            Width="100" 
+                            Height="4"
+                            IsVisible="{Binding IsBusy}"
+                            Foreground="#007ACC"
+                            Margin="0,0,10,0"/>
+                <TextBlock Grid.Column="1" 
+                          Text="{Binding StatusMessage}" 
+                          VerticalAlignment="Center"
+                          Foreground="White"/>
+            </Grid>
+        </Border>
+
+    </Grid>
+</UserControl>

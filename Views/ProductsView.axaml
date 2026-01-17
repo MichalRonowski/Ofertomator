@@ -1,0 +1,276 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="clr-namespace:Ofertomator.ViewModels"
+             xmlns:models="clr-namespace:Ofertomator.Models"
+             mc:Ignorable="d" d:DesignWidth="1000" d:DesignHeight="700"
+             x:Class="Ofertomator.Views.ProductsView"
+             x:DataType="vm:ProductsViewModel">
+
+    <Design.DataContext>
+        <vm:ProductsViewModel />
+    </Design.DataContext>
+
+    <Grid RowDefinitions="Auto,Auto,*,Auto,Auto" Margin="20">
+        
+        <!-- Nagłówek -->
+        <StackPanel Grid.Row="0" Spacing="10" Margin="0,0,0,20">
+            <TextBlock Text="Zarządzanie Produktami" 
+                      FontSize="24" 
+                      FontWeight="Bold" 
+                      Foreground="White"/>
+            <TextBlock Text="{Binding ProductsInfo}" 
+                      FontSize="14" 
+                      Foreground="#CCCCCC"/>
+        </StackPanel>
+
+        <!-- Pasek Wyszukiwania i Akcji -->
+        <Grid Grid.Row="1" 
+              ColumnDefinitions="*,Auto,Auto,Auto,Auto" 
+              Margin="0,0,0,15">
+            
+            <!-- SearchBox -->
+            <TextBox Grid.Column="0" 
+                     Text="{Binding SearchQuery}"
+                     Watermark="Wyszukaj produkt (kod lub nazwa)..."
+                     FontSize="14"
+                     Padding="10"
+                     VerticalContentAlignment="Center"
+                     Background="#2D2D30"
+                     Foreground="White"
+                     BorderBrush="#3E3E42"
+                     BorderThickness="1"/>
+
+            <!-- Przycisk Odśwież -->
+            <Button Grid.Column="1" 
+                    Command="{Binding RefreshCommand}"
+                    Padding="12,8"
+                    Margin="10,0,0,0"
+                    Background="#2D2D30"
+                    Foreground="White"
+                    BorderBrush="#3E3E42"
+                    ToolTip.Tip="Odśwież listę">
+                <StackPanel Orientation="Horizontal" Spacing="5">
+                    <TextBlock Text="🔄" FontSize="14"/>
+                    <TextBlock Text="Odśwież" FontSize="14"/>
+                </StackPanel>
+            </Button>
+
+            <!-- Przycisk Dodaj -->
+            <Button Grid.Column="2" 
+                    Command="{Binding AddProductCommand}"
+                    Padding="12,8"
+                    Margin="10,0,0,0"
+                    Background="#007ACC"
+                    Foreground="White"
+                    ToolTip.Tip="Dodaj nowy produkt">
+                <StackPanel Orientation="Horizontal" Spacing="5">
+                    <TextBlock Text="➕" FontSize="14"/>
+                    <TextBlock Text="Dodaj Produkt" FontSize="14"/>
+                </StackPanel>
+            </Button>
+
+            <!-- Przycisk Edytuj -->
+            <Button Grid.Column="3" 
+                    Command="{Binding EditProductCommand}"
+                    IsEnabled="{Binding SelectedProduct, Converter={x:Static ObjectConverters.IsNotNull}}"
+                    Padding="12,8"
+                    Margin="10,0,0,0"
+                    Background="#2D2D30"
+                    Foreground="White"
+                    BorderBrush="#3E3E42"
+                    ToolTip.Tip="Edytuj wybrany produkt">
+                <StackPanel Orientation="Horizontal" Spacing="5">
+                    <TextBlock Text="✏️" FontSize="14"/>
+                    <TextBlock Text="Edytuj" FontSize="14"/>
+                </StackPanel>
+            </Button>
+
+            <!-- Przycisk Usuń -->
+            <Button Grid.Column="4" 
+                    Command="{Binding DeleteProductCommand}"
+                    IsEnabled="{Binding SelectedProduct, Converter={x:Static ObjectConverters.IsNotNull}}"
+                    Padding="12,8"
+                    Margin="10,0,0,0"
+                    Background="#C8102E"
+                    Foreground="White"
+                    ToolTip.Tip="Usuń wybrany produkt">
+                <StackPanel Orientation="Horizontal" Spacing="5">
+                    <TextBlock Text="🗑️" FontSize="14"/>
+                    <TextBlock Text="Usuń" FontSize="14"/>
+                </StackPanel>
+            </Button>
+        </Grid>
+
+        <!-- DataGrid z Produktami -->
+        <Border Grid.Row="2" 
+                Background="#1E1E1E" 
+                BorderBrush="#3E3E42" 
+                BorderThickness="1"
+                CornerRadius="4">
+            <Grid>
+                <!-- DataGrid -->
+                <DataGrid ItemsSource="{Binding Products}"
+                         SelectedItem="{Binding SelectedProduct}"
+                         AutoGenerateColumns="False"
+                         IsReadOnly="True"
+                         GridLinesVisibility="All"
+                         BorderThickness="0"
+                         Background="#1E1E1E"
+                         RowBackground="#252526"
+                         HeadersVisibility="Column"
+                         CanUserReorderColumns="True"
+                         CanUserResizeColumns="True"
+                         CanUserSortColumns="True"
+                         Height="500"
+                         RowHeight="32"
+                         SelectionMode="Single">
+
+                    <!-- Style dla nagłówków -->
+                    <DataGrid.Styles>
+                        <Style Selector="DataGridColumnHeader">
+                            <Setter Property="Background" Value="#2D2D30"/>
+                            <Setter Property="Foreground" Value="White"/>
+                            <Setter Property="FontWeight" Value="Bold"/>
+                            <Setter Property="FontSize" Value="14"/>
+                            <Setter Property="Padding" Value="10,8"/>
+                            <Setter Property="BorderBrush" Value="#3E3E42"/>
+                            <Setter Property="BorderThickness" Value="0,0,1,1"/>
+                        </Style>
+                        <Style Selector="DataGridRow">
+                            <Setter Property="Foreground" Value="White"/>
+                            <Setter Property="FontSize" Value="13"/>
+                        </Style>
+                        <Style Selector="DataGridRow:selected /template/ Rectangle#BackgroundRectangle">
+                            <Setter Property="Fill" Value="#007ACC"/>
+                        </Style>
+                        <Style Selector="DataGridCell">
+                            <Setter Property="Padding" Value="10,6"/>
+                            <Setter Property="BorderBrush" Value="#3E3E42"/>
+                        </Style>
+                    </DataGrid.Styles>
+
+                    <DataGrid.Columns>
+
+                        <!-- Kolumna: Nazwa -->
+                        <DataGridTextColumn Header="Nazwa" 
+                                          Binding="{Binding Name}" 
+                                          Width="*"
+                                          MinWidth="200"
+                                          CanUserResize="True"/>
+
+                        <!-- Kolumna: Cena Netto (z formatowaniem walutowym) -->
+                        <DataGridTextColumn Header="Cena Netto" 
+                                          Binding="{Binding PurchasePriceNet, StringFormat='{}{0:N2} PLN'}" 
+                                          Width="130"
+                                          CanUserResize="True"/>
+
+                        <!-- Kolumna: VAT -->
+                        <DataGridTextColumn Header="VAT %" 
+                                          Binding="{Binding VatRate, StringFormat='{}{0:F0}%'}" 
+                                          Width="80"
+                                          CanUserResize="True"/>
+
+                        <!-- Kolumna: Jednostka Miary -->
+                        <DataGridTextColumn Header="J.M." 
+                                          Binding="{Binding Unit}" 
+                                          Width="80"
+                                          CanUserResize="True"/>
+
+                        <!-- Kolumna: Kategoria -->
+                        <DataGridTextColumn Header="Kategoria" 
+                                          Binding="{Binding Category.Name}" 
+                                          Width="150"
+                                          CanUserResize="True"/>
+                    </DataGrid.Columns>
+                </DataGrid>
+
+                <!-- Loading Indicator -->
+                <StackPanel HorizontalAlignment="Center" 
+                           VerticalAlignment="Center"
+                           Spacing="15"
+                           IsVisible="{Binding IsBusy}">
+                    <ProgressBar IsIndeterminate="True" 
+                                Width="300" 
+                                Height="4"
+                                Foreground="#007ACC"/>
+                    <TextBlock Text="{Binding StatusMessage}" 
+                              FontSize="14" 
+                              Foreground="White"
+                              HorizontalAlignment="Center"/>
+                </StackPanel>
+
+                <StackPanel HorizontalAlignment="Center" 
+                           VerticalAlignment="Center"
+                           Spacing="15">
+                    <StackPanel.IsVisible>
+                        <MultiBinding Converter="{x:Static BoolConverters.And}">
+                            <Binding Path="!IsBusy"/>
+                            <Binding Path="Products.Count" Converter="{x:Static ObjectConverters.Equal}" ConverterParameter="0"/>
+                        </MultiBinding>
+                    </StackPanel.IsVisible>
+                    <TextBlock Text="📦" FontSize="48" HorizontalAlignment="Center" Opacity="0.3"/>
+                    <TextBlock Text="Brak produktów do wyświetlenia" FontSize="16" Foreground="#999999" HorizontalAlignment="Center"/>
+                    <Button Command="{Binding AddProductCommand}" Content="Dodaj pierwszy produkt" Padding="15,8" Background="#007ACC" Foreground="White"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- Kontrolki Paginacji -->
+        <Grid Grid.Row="3" 
+              ColumnDefinitions="Auto,*,Auto" 
+              Margin="0,15,0,0">
+            
+            <!-- Przycisk: Poprzednia Strona -->
+            <Button Grid.Column="0" 
+                    Command="{Binding GoToPreviousPageCommand}"
+                    IsEnabled="{Binding CanGoToPreviousPage}"
+                    Padding="12,8"
+                    Background="#2D2D30"
+                    Foreground="White"
+                    BorderBrush="#3E3E42">
+                <StackPanel Orientation="Horizontal" Spacing="5">
+                    <TextBlock Text="◀" FontSize="12"/>
+                    <TextBlock Text="Poprzednia" FontSize="14"/>
+                </StackPanel>
+            </Button>
+
+            <!-- Info o Stronie -->
+            <StackPanel Grid.Column="1" 
+                       HorizontalAlignment="Center" 
+                       VerticalAlignment="Center">
+                <TextBlock Text="{Binding PageInfo}" 
+                          FontSize="14" 
+                          Foreground="White"
+                          HorizontalAlignment="Center"
+                          FontWeight="SemiBold"/>
+            </StackPanel>
+
+            <!-- Przycisk: Następna Strona -->
+            <Button Grid.Column="2" 
+                    Command="{Binding GoToNextPageCommand}"
+                    IsEnabled="{Binding CanGoToNextPage}"
+                    Padding="12,8"
+                    Background="#2D2D30"
+                    Foreground="White"
+                    BorderBrush="#3E3E42">
+                <StackPanel Orientation="Horizontal" Spacing="5">
+                    <TextBlock Text="Następna" FontSize="14"/>
+                    <TextBlock Text="▶" FontSize="12"/>
+                </StackPanel>
+            </Button>
+        </Grid>
+
+        <!-- Status Bar -->
+        <Border Grid.Row="4" 
+                Background="#007ACC" 
+                Padding="10,6"
+                Margin="0,15,0,0"
+                CornerRadius="4">
+            <TextBlock Text="{Binding StatusMessage}" 
+                      Foreground="White" 
+                      FontSize="12"/>
+        </Border>
+    </Grid>
+</UserControl>

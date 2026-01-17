@@ -1,0 +1,126 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:Ofertomator.ViewModels"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d" d:DesignWidth="1000" d:DesignHeight="600"
+        x:Class="Ofertomator.Views.SavedOffersView"
+        x:DataType="vm:SavedOffersViewModel"
+        Title="Zapisane Oferty"
+        Width="1000" Height="600"
+        WindowStartupLocation="CenterOwner"
+        Background="#1E1E1E"
+        Foreground="White">
+
+    <Window.Styles>
+        <Style Selector="Button">
+            <Setter Property="Background" Value="#2D2D30" />
+            <Setter Property="Foreground" Value="White" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="BorderBrush" Value="#555555" />
+            <Setter Property="Padding" Value="12,6" />
+            <Setter Property="Cursor" Value="Hand" />
+        </Style>
+        <Style Selector="Button:pointerover">
+            <Setter Property="Background" Value="#3E3E40" />
+        </Style>
+        <Style Selector="Button:pressed">
+            <Setter Property="Background" Value="#007ACC" />
+        </Style>
+        <Style Selector="Button:disabled">
+            <Setter Property="Opacity" Value="0.5" />
+            <Setter Property="Cursor" Value="Arrow" />
+        </Style>
+        <Style Selector="DataGrid">
+            <Setter Property="Background" Value="#252526" />
+            <Setter Property="Foreground" Value="White" />
+            <Setter Property="RowBackground" Value="#2D2D30" />
+            <Setter Property="GridLinesVisibility" Value="Horizontal" />
+            <Setter Property="HorizontalGridLinesBrush" Value="#3E3E40" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="BorderBrush" Value="#555555" />
+        </Style>
+        <Style Selector="DataGridColumnHeader">
+            <Setter Property="Background" Value="#1E1E1E" />
+            <Setter Property="Foreground" Value="White" />
+            <Setter Property="FontWeight" Value="Bold" />
+            <Setter Property="Padding" Value="8" />
+        </Style>
+        <Style Selector="DataGridRow:selected">
+            <Setter Property="Background" Value="#007ACC" />
+        </Style>
+    </Window.Styles>
+
+    <DockPanel>
+        <!-- Toolbar -->
+        <Border DockPanel.Dock="Top" 
+                Background="#2D2D30" 
+                BorderBrush="#555555" 
+                BorderThickness="0,0,0,1"
+                Padding="10">
+            <StackPanel Orientation="Horizontal" Spacing="10">
+                <Button Content="🔄 Odśwież" Command="{Binding LoadOffersCommand}" />
+                <Separator Width="1" Background="#555555" />
+                <Button Content="📝 Wczytaj/Edytuj" 
+                        Command="{Binding LoadOfferCommand}"
+                        IsEnabled="{Binding SelectedOffer, Converter={x:Static ObjectConverters.IsNotNull}}" />
+                <Button Content="📄 Generuj PDF" 
+                        Command="{Binding GeneratePdfCommand}"
+                        IsEnabled="{Binding SelectedOffer, Converter={x:Static ObjectConverters.IsNotNull}}" />
+                <Button Content="🗑 Usuń" 
+                        Command="{Binding DeleteOfferCommand}"
+                        IsEnabled="{Binding SelectedOffer, Converter={x:Static ObjectConverters.IsNotNull}}"
+                        Foreground="#FF4444" />
+            </StackPanel>
+        </Border>
+
+        <!-- Status Bar -->
+        <Border DockPanel.Dock="Bottom"
+                Background="#2D2D30"
+                BorderBrush="#555555"
+                BorderThickness="0,1,0,0"
+                Padding="10,5">
+            <Grid ColumnDefinitions="*,Auto">
+                <TextBlock Grid.Column="0" 
+                          Text="{Binding SavedOffers.Count, StringFormat='Liczba ofert: {0}'}" 
+                          VerticalAlignment="Center" />
+                <TextBlock Grid.Column="1" 
+                          IsVisible="{Binding IsLoading}"
+                          Text="Ładowanie..." 
+                          FontStyle="Italic"
+                          Foreground="#007ACC"
+                          VerticalAlignment="Center" />
+            </Grid>
+        </Border>
+
+        <!-- DataGrid -->
+        <DataGrid ItemsSource="{Binding SavedOffers}"
+                  SelectedItem="{Binding SelectedOffer}"
+                  IsReadOnly="True"
+                  SelectionMode="Single"
+                  CanUserReorderColumns="False"
+                  CanUserResizeColumns="True"
+                  CanUserSortColumns="True"
+                  AutoGenerateColumns="False"
+                  Margin="10">
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="ID" 
+                                   Binding="{Binding Id}" 
+                                   Width="60" />
+                <DataGridTextColumn Header="Tytuł" 
+                                   Binding="{Binding Title}" 
+                                   Width="*" 
+                                   MinWidth="200" />
+                <DataGridTextColumn Header="Data Utworzenia" 
+                                   Binding="{Binding CreatedDateFormatted}" 
+                                   Width="150" />
+                <DataGridTextColumn Header="Liczba Pozycji" 
+                                   Binding="{Binding ItemsCount}" 
+                                   Width="120" />
+                <DataGridTextColumn Header="Suma Netto" 
+                                   Binding="{Binding TotalNetFormatted}" 
+                                   Width="150" />
+            </DataGrid.Columns>
+        </DataGrid>
+    </DockPanel>
+</Window>
