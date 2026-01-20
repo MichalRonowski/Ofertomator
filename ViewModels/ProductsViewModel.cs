@@ -459,13 +459,49 @@ public partial class ProductsViewModel : ViewModelBase
 
     /// <summary>
     /// Komenda: Usuń wiele zaznaczonych produktów
-    /// TODO: Implementacja w przyszłości (zaznaczanie checkboxami)
     /// </summary>
     [RelayCommand]
     private async Task DeleteSelectedProductsAsync()
     {
-        StatusMessage = "Masowe usuwanie - TODO: Implementacja w przyszłości";
-        await Task.Delay(100);
+        var selectedProducts = Products.Where(p => p.IsSelected).ToList();
+        if (selectedProducts.Count == 0)
+        {
+            StatusMessage = "Nie zaznaczono żadnych produktów do usunięcia";
+            return;
+        }
+
+        IsBusy = true;
+        var count = selectedProducts.Count;
+        StatusMessage = $"Usuwanie {count} produktów...";
+
+        try
+        {
+            // Usuń z bazy danych
+            foreach (var product in selectedProducts)
+            {
+                await _databaseService.DeleteProductAsync(product.Id);
+            }
+
+            // Usuń z kolekcji Products w UI thread (tak jak w ChangeBulkCategory)
+            await Avalonia.Threading.Dispatcher.UIThread.InvokeAsync(() =>
+            {
+                foreach (var product in selectedProducts)
+                {
+                    Products.Remove(product);
+                }
+            });
+
+            StatusMessage = $"Usunięto {count} produktów";
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Błąd podczas usuwania: {ex.Message}";
+            Console.WriteLine($"Błąd w DeleteSelectedProductsAsync: {ex.Message}");
+        }
+        finally
+        {
+            IsBusy = false;
+        }
     }
 
     /// <summary>
@@ -523,9 +559,6 @@ public partial class ProductsViewModel : ViewModelBase
             
             // Odznacz wszystkie
             DeselectAll();
-            
-            // Wymuś odświeżenie UI - powiadom o zmianie kolekcji
-            OnPropertyChanged(nameof(Products));
         }
         catch (Exception ex)
         {

@@ -10,6 +10,7 @@ public partial class Product : ObservableObject
 {
     [ObservableProperty]
     private bool _isSelected;
+    
     public int Id { get; set; }
     
     /// <summary>
@@ -45,10 +46,12 @@ public partial class Product : ObservableObject
     /// <summary>
     /// ID kategorii (FK do Categories)
     /// </summary>
-    public int CategoryId { get; set; }
+    [ObservableProperty]
+    private int _categoryId;
     
     /// <summary>
     /// Obiekt kategorii (nie przechowywany w DB, ładowany przez JOIN)
     /// </summary>
-    public Category? Category { get; set; }
+    [ObservableProperty]
+    private Category? _category;
 }

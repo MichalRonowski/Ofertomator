@@ -236,7 +236,7 @@
                 CornerRadius="4"
                 Padding="15"
                 Margin="0,10,0,0">
-            <Grid ColumnDefinitions="Auto,*,Auto,Auto,Auto" RowDefinitions="Auto,Auto">
+            <Grid ColumnDefinitions="Auto,*,Auto,Auto,Auto,Auto" RowDefinitions="Auto,Auto">
                 <!-- Wiersz 1: Zaznaczanie -->
                 <TextBlock Grid.Column="0" Grid.Row="0"
                           Text="Zaznaczonych:" 
@@ -266,9 +266,21 @@
                        Command="{Binding DeselectAllCommand}"
                        Content="Odznacz wszystkie"
                        Padding="10,6"
+                       Margin="0,0,10,0"
                        Background="#2D2D30"
                        Foreground="White"
                        BorderBrush="#3E3E42"/>
+
+                <Button Grid.Column="4" Grid.Row="0"
+                       Command="{Binding DeleteSelectedProductsCommand}"
+                       Padding="10,6"
+                       Background="#C8102E"
+                       Foreground="White">
+                    <StackPanel Orientation="Horizontal" Spacing="5">
+                        <TextBlock Text="🗑️" FontSize="14"/>
+                        <TextBlock Text="Usuń zaznaczone" FontSize="14"/>
+                    </StackPanel>
+                </Button>
 
                 <!-- Wiersz 2: Zmiana kategorii -->
                 <TextBlock Grid.Column="0" Grid.Row="1"
