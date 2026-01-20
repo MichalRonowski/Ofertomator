@@ -48,6 +48,22 @@ public partial class ProductsViewModel : ViewModelBase
     [ObservableProperty]
     private string _statusMessage = "Gotowy";
 
+    [ObservableProperty]
+    private ObservableCollection<Category> _categories = new();
+
+    [ObservableProperty]
+    private Category? _selectedCategoryForBulk;
+
+    /// <summary>
+    /// Liczba zaznaczonych produktów
+    /// </summary>
+    public int SelectedCount => Products.Count(p => p.IsSelected);
+
+    /// <summary>
+    /// Czy można wykonać masową zmianę kategorii
+    /// </summary>
+    public bool CanChangeBulkCategory => SelectedCount > 0 && SelectedCategoryForBulk != null && !IsBusy;
+
     /// <summary>
     /// Czy przycisk "Poprzednia" jest dostępny
     /// </summary>
@@ -77,8 +93,9 @@ public partial class ProductsViewModel : ViewModelBase
         _databaseService = databaseService;
         _getMainWindow = getMainWindow;
         
-        // Inicjalizacja - załaduj pierwszą stronę
+        // Inicjalizacja - załaduj pierwszą stronę i kategorie
         _ = LoadProductsAsync();
+        _ = LoadCategoriesAsync();
     }
 
     #region Property Changed Handlers
@@ -93,7 +110,13 @@ public partial class ProductsViewModel : ViewModelBase
 
         // Ustaw nowy timer na 300ms
         _searchDebounceTimer = new Timer(
-            async _ => await PerformSearchAsync(),
+            _ =>
+            {
+                Avalonia.Threading.Dispatcher.UIThread.InvokeAsync(async () =>
+                {
+                    await PerformSearchAsync();
+                });
+            },
             null,
             SearchDebounceMs,
             Timeout.Infinite
@@ -108,6 +131,8 @@ public partial class ProductsViewModel : ViewModelBase
         OnPropertyChanged(nameof(CanGoToPreviousPage));
         OnPropertyChanged(nameof(CanGoToNextPage));
         OnPropertyChanged(nameof(PageInfo));
+        GoToPreviousPageCommand.NotifyCanExecuteChanged();
+        GoToNextPageCommand.NotifyCanExecuteChanged();
     }
 
     /// <summary>
@@ -118,6 +143,8 @@ public partial class ProductsViewModel : ViewModelBase
         OnPropertyChanged(nameof(CanGoToPreviousPage));
         OnPropertyChanged(nameof(CanGoToNextPage));
         OnPropertyChanged(nameof(PageInfo));
+        GoToPreviousPageCommand.NotifyCanExecuteChanged();
+        GoToNextPageCommand.NotifyCanExecuteChanged();
     }
 
     /// <summary>
@@ -127,6 +154,8 @@ public partial class ProductsViewModel : ViewModelBase
     {
         OnPropertyChanged(nameof(CanGoToPreviousPage));
         OnPropertyChanged(nameof(CanGoToNextPage));
+        GoToPreviousPageCommand.NotifyCanExecuteChanged();
+        GoToNextPageCommand.NotifyCanExecuteChanged();
     }
 
     /// <summary>
@@ -135,6 +164,14 @@ public partial class ProductsViewModel : ViewModelBase
     partial void OnTotalProductsChanged(int value)
     {
         OnPropertyChanged(nameof(ProductsInfo));
+    }
+
+    /// <summary>
+    /// Handler dla zmiany wybranej kategorii do masowej zmiany
+    /// </summary>
+    partial void OnSelectedCategoryForBulkChanged(Category? value)
+    {
+        ChangeBulkCategoryCommand.NotifyCanExecuteChanged();
     }
 
     #endregion
@@ -167,6 +204,8 @@ public partial class ProductsViewModel : ViewModelBase
                 Products.Clear();
                 foreach (var product in products)
                 {
+                    // Subskrybuj zmiany IsSelected dla każdego produktu
+                    product.PropertyChanged += Product_PropertyChanged;
                     Products.Add(product);
                 }
 
@@ -192,8 +231,6 @@ public partial class ProductsViewModel : ViewModelBase
         finally
         {
             IsBusy = false;
-            OnPropertyChanged(nameof(CanGoToNextPage));
-            OnPropertyChanged(nameof(CanGoToPreviousPage));
         }
     }
 
@@ -205,6 +242,42 @@ public partial class ProductsViewModel : ViewModelBase
         // Resetuj do pierwszej strony przy wyszukiwaniu
         CurrentPage = 1;
         await LoadProductsAsync();
+    }
+
+    /// <summary>
+    /// Ładuje kategorie z bazy danych
+    /// </summary>
+    private async Task LoadCategoriesAsync()
+    {
+        try
+        {
+            var categories = await _databaseService.GetCategoriesAsync();
+            
+            await Avalonia.Threading.Dispatcher.UIThread.InvokeAsync(() =>
+            {
+                Categories.Clear();
+                foreach (var category in categories)
+                {
+                    Categories.Add(category);
+                }
+            });
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Błąd ładowania kategorii: {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// Handler dla zmian w produktach (np. IsSelected)
+    /// </summary>
+    private void Product_PropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(Product.IsSelected))
+        {
+            OnPropertyChanged(nameof(SelectedCount));
+            ChangeBulkCategoryCommand.NotifyCanExecuteChanged();
+        }
     }
 
     #endregion
@@ -393,6 +466,76 @@ public partial class ProductsViewModel : ViewModelBase
     {
         StatusMessage = "Masowe usuwanie - TODO: Implementacja w przyszłości";
         await Task.Delay(100);
+    }
+
+    /// <summary>
+    /// Komenda: Zaznacz wszystkie produkty na stronie
+    /// </summary>
+    [RelayCommand]
+    private void SelectAll()
+    {
+        foreach (var product in Products)
+        {
+            product.IsSelected = true;
+        }
+    }
+
+    /// <summary>
+    /// Komenda: Odznacz wszystkie produkty
+    /// </summary>
+    [RelayCommand]
+    private void DeselectAll()
+    {
+        foreach (var product in Products)
+        {
+            product.IsSelected = false;
+        }
+    }
+
+    /// <summary>
+    /// Komenda: Zmień kategorię dla wszystkich zaznaczonych produktów
+    /// </summary>
+    [RelayCommand(CanExecute = nameof(CanChangeBulkCategory))]
+    private async Task ChangeBulkCategoryAsync()
+    {
+        if (SelectedCategoryForBulk == null || SelectedCount == 0)
+            return;
+
+        IsBusy = true;
+        var count = SelectedCount;
+        StatusMessage = $"Zmiana kategorii dla {count} produktów...";
+
+        try
+        {
+            var selectedProducts = Products.Where(p => p.IsSelected).ToList();
+            var categoryId = SelectedCategoryForBulk.Id;
+            var category = SelectedCategoryForBulk;
+
+            // Zapisz zmiany w bazie danych
+            foreach (var product in selectedProducts)
+            {
+                product.CategoryId = categoryId;
+                product.Category = category;
+                await _databaseService.UpdateProductAsync(product);
+            }
+
+            StatusMessage = $"Zmieniono kategorię dla {count} produktów";
+            
+            // Odznacz wszystkie
+            DeselectAll();
+            
+            // Wymuś odświeżenie UI - powiadom o zmianie kolekcji
+            OnPropertyChanged(nameof(Products));
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Błąd podczas zmiany kategorii: {ex.Message}";
+            Console.WriteLine($"Błąd w ChangeBulkCategoryAsync: {ex.Message}");
+        }
+        finally
+        {
+            IsBusy = false;
+        }
     }
 
     #endregion

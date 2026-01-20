@@ -43,13 +43,6 @@ public class DatabaseService : IDisposable
     {
         using var connection = CreateConnection();
 
-        // Tworzenie funkcji pomocniczej dla polskich znaków (case-insensitive)
-        var sqliteConnection = connection as SqliteConnection;
-        sqliteConnection?.CreateFunction(
-            "POLISH_LOWER",
-            (string text) => text?.ToLowerInvariant() ?? string.Empty
-        );
-
         // Tabela Categories
         await connection.ExecuteAsync(@"
             CREATE TABLE IF NOT EXISTS Categories (
@@ -326,7 +319,7 @@ public class DatabaseService : IDisposable
             var offset = (pageNumber - 1) * pageSize;
             var whereClause = string.IsNullOrWhiteSpace(searchQuery) 
                 ? "" 
-                : "WHERE POLISH_LOWER(p.Name) LIKE @Search OR POLISH_LOWER(p.Code) LIKE @Search";
+                : "WHERE LOWER(p.Name) LIKE @Search OR LOWER(p.Code) LIKE @Search";
             
             var searchParam = $"%{searchQuery?.ToLowerInvariant()}%";
 

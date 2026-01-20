@@ -1,12 +1,15 @@
 using System;
+using CommunityToolkit.Mvvm.ComponentModel;
 
 namespace Ofertomator.Models;
 
 /// <summary>
 /// Produkt w bazie danych
 /// </summary>
-public class Product
+public partial class Product : ObservableObject
 {
+    [ObservableProperty]
+    private bool _isSelected;
     public int Id { get; set; }
     
     /// <summary>

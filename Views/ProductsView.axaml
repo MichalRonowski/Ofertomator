@@ -12,7 +12,7 @@
         <vm:ProductsViewModel />
     </Design.DataContext>
 
-    <Grid RowDefinitions="Auto,Auto,*,Auto,Auto" Margin="20">
+    <Grid RowDefinitions="Auto,Auto,*,Auto,Auto,Auto" Margin="20">
         
         <!-- Nagłówek -->
         <StackPanel Grid.Row="0" Spacing="10" Margin="0,0,0,20">
@@ -123,7 +123,7 @@
                          CanUserReorderColumns="True"
                          CanUserResizeColumns="True"
                          CanUserSortColumns="True"
-                         Height="500"
+                         Height="350"
                          RowHeight="32"
                          SelectionMode="Single">
 
@@ -152,6 +152,17 @@
                     </DataGrid.Styles>
 
                     <DataGrid.Columns>
+
+                        <!-- Kolumna: Checkbox Zaznaczenia -->
+                        <DataGridTemplateColumn Header="✓" Width="50" CanUserResize="False">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <CheckBox IsChecked="{Binding IsSelected}" 
+                                             HorizontalAlignment="Center"
+                                             VerticalAlignment="Center"/>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
 
                         <!-- Kolumna: Nazwa -->
                         <DataGridTextColumn Header="Nazwa" 
@@ -217,15 +228,87 @@
             </Grid>
         </Border>
 
+        <!-- Panel Masowych Operacji -->
+        <Border Grid.Row="3" 
+                Background="#2D2D30" 
+                BorderBrush="#3E3E42" 
+                BorderThickness="1"
+                CornerRadius="4"
+                Padding="15"
+                Margin="0,10,0,0">
+            <Grid ColumnDefinitions="Auto,*,Auto,Auto,Auto" RowDefinitions="Auto,Auto">
+                <!-- Wiersz 1: Zaznaczanie -->
+                <TextBlock Grid.Column="0" Grid.Row="0"
+                          Text="Zaznaczonych:" 
+                          FontSize="14" 
+                          Foreground="White"
+                          VerticalAlignment="Center"
+                          Margin="0,0,10,0"/>
+                
+                <TextBlock Grid.Column="1" Grid.Row="0"
+                          Text="{Binding SelectedCount}" 
+                          FontSize="14" 
+                          FontWeight="Bold"
+                          Foreground="#007ACC"
+                          VerticalAlignment="Center"
+                          Margin="0,0,15,0"/>
+
+                <Button Grid.Column="2" Grid.Row="0"
+                       Command="{Binding SelectAllCommand}"
+                       Content="Zaznacz wszystkie"
+                       Padding="10,6"
+                       Margin="0,0,10,0"
+                       Background="#2D2D30"
+                       Foreground="White"
+                       BorderBrush="#3E3E42"/>
+
+                <Button Grid.Column="3" Grid.Row="0"
+                       Command="{Binding DeselectAllCommand}"
+                       Content="Odznacz wszystkie"
+                       Padding="10,6"
+                       Background="#2D2D30"
+                       Foreground="White"
+                       BorderBrush="#3E3E42"/>
+
+                <!-- Wiersz 2: Zmiana kategorii -->
+                <TextBlock Grid.Column="0" Grid.Row="1"
+                          Text="Zmień kategorię:" 
+                          FontSize="14" 
+                          Foreground="White"
+                          VerticalAlignment="Center"
+                          Margin="0,10,10,0"/>
+
+                <ComboBox Grid.Column="1" Grid.Row="1"
+                         Grid.ColumnSpan="2"
+                         ItemsSource="{Binding Categories}"
+                         SelectedItem="{Binding SelectedCategoryForBulk}"
+                         DisplayMemberBinding="{Binding Name}"
+                         Margin="0,10,10,0"
+                         Padding="10,6"
+                         Background="#1E1E1E"
+                         Foreground="White"
+                         BorderBrush="#3E3E42"
+                         Width="300"
+                         HorizontalAlignment="Left"/>
+
+                <Button Grid.Column="3" Grid.Row="1"
+                       Command="{Binding ChangeBulkCategoryCommand}"
+                       Content="Zastosuj dla zaznaczonych"
+                       Padding="10,6"
+                       Margin="0,10,0,0"
+                       Background="#007ACC"
+                       Foreground="White"/>
+            </Grid>
+        </Border>
+
         <!-- Kontrolki Paginacji -->
-        <Grid Grid.Row="3" 
+        <Grid Grid.Row="4" 
               ColumnDefinitions="Auto,*,Auto" 
               Margin="0,15,0,0">
             
             <!-- Przycisk: Poprzednia Strona -->
             <Button Grid.Column="0" 
                     Command="{Binding GoToPreviousPageCommand}"
-                    IsEnabled="{Binding CanGoToPreviousPage}"
                     Padding="12,8"
                     Background="#2D2D30"
                     Foreground="White"
@@ -250,7 +333,6 @@
             <!-- Przycisk: Następna Strona -->
             <Button Grid.Column="2" 
                     Command="{Binding GoToNextPageCommand}"
-                    IsEnabled="{Binding CanGoToNextPage}"
                     Padding="12,8"
                     Background="#2D2D30"
                     Foreground="White"
@@ -263,7 +345,7 @@
         </Grid>
 
         <!-- Status Bar -->
-        <Border Grid.Row="4" 
+        <Border Grid.Row="5" 
                 Background="#007ACC" 
                 Padding="10,6"
                 Margin="0,15,0,0"
