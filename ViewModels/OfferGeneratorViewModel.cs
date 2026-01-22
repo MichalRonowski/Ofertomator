@@ -82,6 +82,11 @@ public partial class OfferGeneratorViewModel : ViewModelBase
     [ObservableProperty]
     private string _statusMessage = "Gotowy";
 
+    /// <summary>
+    /// Własna kolejność kategorii dla tej oferty (null = użyj domyślnej)
+    /// </summary>
+    private List<string>? _customCategoryOrder;
+
     #endregion
 
     #region Computed Properties - Podsumowanie Oferty
@@ -110,6 +115,34 @@ public partial class OfferGeneratorViewModel : ViewModelBase
     /// Info: "Pozycji w ofercie: X"
     /// </summary>
     public string OfferItemsInfo => $"Pozycji w ofercie: {OfferItemsCount}";
+
+    /// <summary>
+    /// Produkty w ofercie pogrupowane według kategorii (sortowane według własnej kolejności lub DisplayOrder)
+    /// </summary>
+    public IEnumerable<IGrouping<string, SavedOfferItem>> OfferItemsGroupedByCategory
+    {
+        get
+        {
+            var grouped = OfferItems
+                .GroupBy(item => item.CategoryName ?? "Bez kategorii")
+                .ToList();
+
+            // Jeśli jest własna kolejność, użyj jej
+            if (_customCategoryOrder != null && _customCategoryOrder.Count > 0)
+            {
+                var orderDict = _customCategoryOrder
+                    .Select((name, index) => new { name, index })
+                    .ToDictionary(x => x.name, x => x.index);
+                
+                return grouped.OrderBy(g => orderDict.TryGetValue(g.Key, out var order) ? order : 9999);
+            }
+
+            // Jeśli nie ma własnej kolejności, użyj DisplayOrder z Categories
+            var categoryDict = Categories.ToDictionary(c => c.Name, c => c.DisplayOrder);
+            
+            return grouped.OrderBy(g => categoryDict.TryGetValue(g.Key, out var order) ? order : 9999);
+        }
+    }
 
     #endregion
 
@@ -261,6 +294,7 @@ public partial class OfferGeneratorViewModel : ViewModelBase
         OnPropertyChanged(nameof(TotalOfferGross));
         OnPropertyChanged(nameof(OfferItemsCount));
         OnPropertyChanged(nameof(OfferItemsInfo));
+        OnPropertyChanged(nameof(OfferItemsGroupedByCategory));
     }
 
     #endregion
@@ -317,12 +351,11 @@ public partial class OfferGeneratorViewModel : ViewModelBase
                 if (productsInOfferIds.Contains(p.Id))
                     return false;
 
-                // Filtruj po search query
+                // Filtruj po search query (ignoruj wielkość liter, obsługuj polskie znaki)
                 if (!string.IsNullOrWhiteSpace(SearchQuery))
                 {
-                    var query = SearchQuery.ToLower();
-                    return (p.Name?.ToLower().Contains(query) ?? false) ||
-                           (p.Code?.ToLower().Contains(query) ?? false);
+                    return (p.Name?.Contains(SearchQuery, StringComparison.OrdinalIgnoreCase) ?? false) ||
+                           (p.Code?.Contains(SearchQuery, StringComparison.OrdinalIgnoreCase) ?? false);
                 }
 
                 return true;
@@ -413,6 +446,60 @@ public partial class OfferGeneratorViewModel : ViewModelBase
     }
 
     /// <summary>
+    /// Komenda: Dodaj wszystkie produkty z aktualnie wybranej kategorii
+    /// </summary>
+    [RelayCommand]
+    private void AddAllProductsFromCategory()
+    {
+        if (SelectedCategory == null)
+        {
+            StatusMessage = "Wybierz kategorię";
+            return;
+        }
+
+        try
+        {
+            var productsToAdd = SourceProducts.ToList();
+            if (productsToAdd.Count == 0)
+            {
+                StatusMessage = "Brak produktów do dodania";
+                return;
+            }
+
+            var defaultMargin = SelectedCategory.DefaultMargin;
+            int addedCount = 0;
+
+            foreach (var product in productsToAdd)
+            {
+                // Sprawdź czy produkt już w ofercie
+                if (OfferItems.Any(i => i.ProductId == product.Id))
+                    continue;
+
+                var offerItem = new SavedOfferItem
+                {
+                    ProductId = product.Id,
+                    Name = product.Name,
+                    CategoryName = product.Category?.Name,
+                    Unit = product.Unit ?? "szt.",
+                    PurchasePriceNet = product.PurchasePriceNet,
+                    VatRate = product.VatRate,
+                    Margin = defaultMargin,
+                    Quantity = 1m
+                };
+
+                OfferItems.Add(offerItem);
+                addedCount++;
+            }
+
+            StatusMessage = $"Dodano {addedCount} produktów z kategorii '{SelectedCategory.Name}'";
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Błąd dodawania produktów: {ex.Message}";
+        }
+    }
+
+    /// <summary>
     /// Komenda: Wyczyść całą ofertę
     /// </summary>
     [RelayCommand]
@@ -443,6 +530,84 @@ public partial class OfferGeneratorViewModel : ViewModelBase
     private async Task RefreshAsync()
     {
         await LoadCategoriesAsync();
+    }
+
+    /// <summary>
+    /// Komenda: Ustaw kolejność kategorii dla tej oferty
+    /// </summary>
+    [RelayCommand]
+    private async Task SetCategoryOrderAsync()
+    {
+        try
+        {
+            // Pobierz unikalne kategorie z aktualnej oferty
+            var categoriesInOffer = OfferItems
+                .Select(item => item.CategoryName ?? "Bez kategorii")
+                .Distinct()
+                .ToList();
+
+            if (categoriesInOffer.Count == 0)
+            {
+                var emptyBox = MessageBoxManager.GetMessageBoxStandard(
+                    "Pusta oferta",
+                    "Dodaj produkty do oferty, aby ustawić kolejność kategorii.",
+                    ButtonEnum.Ok,
+                    Icon.Info);
+                await emptyBox.ShowAsync();
+                return;
+            }
+
+            // Scal istniejącą kolejność z nowymi kategoriami
+            List<string> currentOrder;
+            if (_customCategoryOrder != null && _customCategoryOrder.Any())
+            {
+                // Zacznij od istniejącej kolejności
+                currentOrder = new List<string>(_customCategoryOrder);
+                
+                // Dodaj nowe kategorie (które są w ofercie, ale nie ma ich w kolejności)
+                var newCategories = categoriesInOffer
+                    .Where(cat => !_customCategoryOrder.Contains(cat))
+                    .OrderBy(cat => cat)
+                    .ToList();
+                
+                currentOrder.AddRange(newCategories);
+            }
+            else
+            {
+                // Pierwsza konfiguracja - użyj wszystkich kategorii alfabetycznie
+                currentOrder = categoriesInOffer.OrderBy(cat => cat).ToList();
+            }
+
+            // Otwórz okno dialogowe
+            var viewModel = new CategoryOrderViewModel(currentOrder);
+            var window = new Views.CategoryOrderWindow
+            {
+                DataContext = viewModel
+            };
+
+            viewModel.RequestClose += (s, e) => window.Close();
+
+            var mainWindow = _getMainWindow();
+            if (mainWindow != null)
+            {
+                await window.ShowDialog(mainWindow);
+
+                if (viewModel.DialogResult)
+                {
+                    // Zapisz nową kolejność
+                    _customCategoryOrder = viewModel.GetOrderedCategoryNames();
+                    
+                    // Odśwież wyświetlanie
+                    OnPropertyChanged(nameof(OfferItemsGroupedByCategory));
+                    
+                    StatusMessage = "Kolejność kategorii została zaktualizowana";
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Błąd ustawiania kolejności: {ex.Message}";
+        }
     }
 
     /// <summary>
@@ -517,7 +682,7 @@ public partial class OfferGeneratorViewModel : ViewModelBase
             StatusMessage = "Generowanie PDF...";
             await Task.Run(async () =>
             {
-                await _pdfService.GenerateOfferPdfAsync(OfferItems, businessCard, filePath);
+                await _pdfService.GenerateOfferPdfAsync(OfferItems, businessCard, filePath, _customCategoryOrder);
             });
 
             StatusMessage = "PDF wygenerowany pomyślnie!";
@@ -605,7 +770,8 @@ public partial class OfferGeneratorViewModel : ViewModelBase
             // Przygotuj nagłówek oferty
             var offer = CurrentOffer ?? new SavedOffer();
             offer.Title = dialog.InputValue.Trim();
-            offer.CreatedDate = DateTime.Now;
+            offer.CreatedDate = CurrentOffer?.CreatedDate ?? DateTime.Now;
+            offer.ModifiedDate = DateTime.Now;
 
             // Przygotuj pozycje oferty
             var items = OfferItems.Select(oi => new SavedOfferItem
@@ -697,6 +863,8 @@ public partial class OfferGeneratorViewModel : ViewModelBase
     {
         CurrentOffer = null;
         OfferItems.Clear();
+        _customCategoryOrder = null; // Resetuj własną kolejność kategorii
+        OnPropertyChanged(nameof(OfferItemsGroupedByCategory));
     }
 
     #endregion

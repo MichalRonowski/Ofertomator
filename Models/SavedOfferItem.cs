@@ -1,3 +1,4 @@
+using System;
 using CommunityToolkit.Mvvm.ComponentModel;
 
 namespace Ofertomator.Models;
@@ -47,13 +48,61 @@ public partial class SavedOfferItem : ObservableObject
     /// <summary>
     /// Marża w procentach - EDYTOWALNA przez użytkownika
     /// </summary>
-    [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(SalePriceNet))]
-    [NotifyPropertyChangedFor(nameof(SalePriceGross))]
-    [NotifyPropertyChangedFor(nameof(TotalNet))]
-    [NotifyPropertyChangedFor(nameof(VatAmount))]
-    [NotifyPropertyChangedFor(nameof(TotalGross))]
     private decimal _margin = 0m;
+    private bool _isUpdatingMargin = false;
+    public decimal Margin
+    {
+        get => Math.Round(_margin, 2);
+        set
+        {
+            if (_isUpdatingMargin) return;
+            
+            var roundedValue = Math.Round(value, 2);
+            if (SetProperty(ref _margin, roundedValue))
+            {
+                _isUpdatingMargin = true;
+                // Aktualizuj cenę sprzedaży na podstawie marży
+                _salePriceNet = PurchasePriceNet * (1 + roundedValue / 100m);
+                OnPropertyChanged(nameof(SalePriceNet));
+                OnPropertyChanged(nameof(SalePriceGross));
+                OnPropertyChanged(nameof(TotalNet));
+                OnPropertyChanged(nameof(VatAmount));
+                OnPropertyChanged(nameof(TotalGross));
+                _isUpdatingMargin = false;
+            }
+        }
+    }
+    
+    /// <summary>
+    /// Cena sprzedaży netto jednostkowa - EDYTOWALNA przez użytkownika
+    /// </summary>
+    private decimal _salePriceNet = 0m;
+    private bool _isUpdatingSalePrice = false;
+    public decimal SalePriceNet
+    {
+        get => Math.Round(_salePriceNet, 2);
+        set
+        {
+            if (_isUpdatingSalePrice) return;
+            
+            var roundedValue = Math.Round(value, 2);
+            if (SetProperty(ref _salePriceNet, roundedValue))
+            {
+                _isUpdatingSalePrice = true;
+                // Aktualizuj marżę na podstawie ceny sprzedaży
+                if (PurchasePriceNet > 0)
+                {
+                    _margin = ((roundedValue / PurchasePriceNet) - 1) * 100m;
+                    OnPropertyChanged(nameof(Margin));
+                }
+                OnPropertyChanged(nameof(SalePriceGross));
+                OnPropertyChanged(nameof(TotalNet));
+                OnPropertyChanged(nameof(VatAmount));
+                OnPropertyChanged(nameof(TotalGross));
+                _isUpdatingSalePrice = false;
+            }
+        }
+    }
     
     /// <summary>
     /// Ilość (domyślnie 1.0) - EDYTOWALNA przez użytkownika
@@ -65,14 +114,8 @@ public partial class SavedOfferItem : ObservableObject
     private decimal _quantity = 1m;
     
     /// <summary>
-    /// Kalkulowana cena sprzedaży netto jednostkowa
-    /// Automatycznie przeliczana gdy zmieni się Margin
-    /// </summary>
-    public decimal SalePriceNet => PurchasePriceNet * (1 + Margin / 100m);
-    
-    /// <summary>
     /// Kalkulowana cena sprzedaży brutto jednostkowa
-    /// Automatycznie przeliczana gdy zmieni się Margin lub VatRate
+    /// Automatycznie przeliczana gdy zmieni się SalePriceNet lub VatRate
     /// </summary>
     public decimal SalePriceGross => SalePriceNet * (1 + VatRate / 100m);
     

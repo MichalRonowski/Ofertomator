@@ -21,17 +21,35 @@ public class PdfGeneratorService : IPdfService
     /// <summary>
     /// Generuje PDF z ofertą handlową
     /// </summary>
-    public Task GenerateOfferPdfAsync(IEnumerable<SavedOfferItem> items, BusinessCard businessCard, string filePath)
+    public Task GenerateOfferPdfAsync(IEnumerable<SavedOfferItem> items, BusinessCard businessCard, string filePath, IEnumerable<string>? categoryOrder = null)
     {
         return Task.Run(() =>
         {
             var itemsList = items.ToList();
+            var orderList = categoryOrder?.ToList();
 
-            // Grupowanie produktów według kategorii
+            // Grupowanie produktów według kategorii i sortowanie po własnej kolejności lub alfabetycznie
             var groupedByCategory = itemsList
-                .GroupBy(x => x.CategoryName ?? "Bez kategorii")
-                .OrderBy(g => g.Key)
-                .ToList();
+                .GroupBy(x => x.CategoryName ?? "Bez kategorii");
+
+            List<IGrouping<string, SavedOfferItem>> sortedGroups;
+            
+            if (orderList != null && orderList.Count > 0)
+            {
+                // Sortuj według podanej kolejności
+                var orderDict = orderList
+                    .Select((name, index) => new { name, index })
+                    .ToDictionary(x => x.name, x => x.index);
+                
+                sortedGroups = groupedByCategory
+                    .OrderBy(g => orderDict.TryGetValue(g.Key, out var order) ? order : 9999)
+                    .ToList();
+            }
+            else
+            {
+                // Sortuj alfabetycznie
+                sortedGroups = groupedByCategory.OrderBy(g => g.Key).ToList();
+            }
 
             // Generowanie dokumentu
             Document.Create(container =>
@@ -45,7 +63,7 @@ public class PdfGeneratorService : IPdfService
                     page.DefaultTextStyle(x => x.FontFamily("Arial").FontSize(10));
 
                     page.Header().Element(c => ComposeHeader(c, businessCard));
-                    page.Content().Element(c => ComposeContent(c, groupedByCategory));
+                    page.Content().Element(c => ComposeContent(c, sortedGroups));
                     page.Footer().Element(ComposeFooter);
                 });
             })
@@ -104,7 +122,7 @@ public class PdfGeneratorService : IPdfService
     }
 
     /// <summary>
-    /// Zawartość dokumentu: Tabele produktów pogrupowane według kategorii + Podsumowanie
+    /// Zawartość dokumentu: Tabele produktów pogrupowane według kategorii
     /// </summary>
     private void ComposeContent(IContainer container, List<IGrouping<string, SavedOfferItem>> groupedByCategory)
     {
@@ -115,9 +133,6 @@ public class PdfGeneratorService : IPdfService
             {
                 column.Item().Element(c => ComposeCategorySection(c, categoryGroup));
             }
-
-            // Podsumowanie na końcu
-            column.Item().PaddingTop(20).Element(c => ComposeSummary(c, groupedByCategory.SelectMany(g => g)));
         });
     }
 
@@ -140,23 +155,21 @@ public class PdfGeneratorService : IPdfService
                 // Definicja kolumn
                 table.ColumnsDefinition(columns =>
                 {
-                    columns.RelativeColumn(4); // Nazwa (szeroka)
-                    columns.RelativeColumn(1); // Ilość
-                    columns.RelativeColumn(1); // J.M.
-                    columns.RelativeColumn(1.5f); // Cena Netto
-                    columns.RelativeColumn(1); // VAT %
-                    columns.RelativeColumn(1.5f); // Wartość Brutto
+                    columns.RelativeColumn(5); // Nazwa (szeroka)
+                    columns.RelativeColumn(2); // Cena Netto
+                    columns.RelativeColumn(1.5f); // Jednostka
+                    columns.RelativeColumn(1.5f); // VAT %
+                    columns.RelativeColumn(2); // Cena Brutto
                 });
 
                 // Nagłówek tabeli
                 table.Header(header =>
                 {
                     header.Cell().Background(HeaderBackground).Padding(5).Text("Nazwa produktu").Bold().FontSize(9);
-                    header.Cell().Background(HeaderBackground).Padding(5).Text("Ilość").Bold().FontSize(9);
-                    header.Cell().Background(HeaderBackground).Padding(5).Text("J.M.").Bold().FontSize(9);
                     header.Cell().Background(HeaderBackground).Padding(5).Text("Cena Netto").Bold().FontSize(9);
+                    header.Cell().Background(HeaderBackground).Padding(5).Text("Jednostka").Bold().FontSize(9);
                     header.Cell().Background(HeaderBackground).Padding(5).Text("VAT %").Bold().FontSize(9);
-                    header.Cell().Background(HeaderBackground).Padding(5).Text("Wartość Brutto").Bold().FontSize(9);
+                    header.Cell().Background(HeaderBackground).Padding(5).Text("Cena Brutto").Bold().FontSize(9);
                 });
 
                 // Wiersze z produktami (zebra styling)
@@ -167,54 +180,15 @@ public class PdfGeneratorService : IPdfService
                     rowIndex++;
 
                     table.Cell().Background(bgColor).Padding(5).Text(item.Name ?? "-");
-                    table.Cell().Background(bgColor).Padding(5).AlignRight().Text($"{item.Quantity:F2}");
-                    table.Cell().Background(bgColor).Padding(5).Text(item.Unit ?? "-");
                     table.Cell().Background(bgColor).Padding(5).AlignRight().Text($"{item.SalePriceNet:N2} zł");
+                    table.Cell().Background(bgColor).Padding(5).AlignCenter().Text($"zł/{item.Unit ?? "szt."}");
                     table.Cell().Background(bgColor).Padding(5).AlignCenter().Text($"{item.VatRate:F0}%");
-                    table.Cell().Background(bgColor).Padding(5).AlignRight().Text($"{item.TotalGross:N2} zł").Bold();
+                    table.Cell().Background(bgColor).Padding(5).AlignRight().Text($"{item.SalePriceGross:N2} zł").Bold();
                 }
             });
 
             // Odstęp między kategoriami
             column.Item().PaddingBottom(15);
-        });
-    }
-
-    /// <summary>
-    /// Podsumowanie: Suma Netto, VAT, Brutto
-    /// </summary>
-    private void ComposeSummary(IContainer container, IEnumerable<SavedOfferItem> allItems)
-    {
-        var itemsList = allItems.ToList();
-        var totalNet = itemsList.Sum(x => x.TotalNet);
-        var totalVat = itemsList.Sum(x => x.VatAmount);
-        var totalGross = itemsList.Sum(x => x.TotalGross);
-
-        container.AlignRight().Width(250).Table(table =>
-        {
-            table.ColumnsDefinition(columns =>
-            {
-                columns.RelativeColumn(2);
-                columns.RelativeColumn(2);
-            });
-
-            // Suma Netto
-            table.Cell().BorderBottom(1).BorderColor(Colors.Grey.Lighten2).Padding(8)
-                .Text("Suma Netto:").FontSize(11);
-            table.Cell().BorderBottom(1).BorderColor(Colors.Grey.Lighten2).Padding(8)
-                .AlignRight().Text($"{totalNet:N2} zł").FontSize(11);
-
-            // Suma VAT
-            table.Cell().BorderBottom(1).BorderColor(Colors.Grey.Lighten2).Padding(8)
-                .Text("Suma VAT:").FontSize(11);
-            table.Cell().BorderBottom(1).BorderColor(Colors.Grey.Lighten2).Padding(8)
-                .AlignRight().Text($"{totalVat:N2} zł").FontSize(11);
-
-            // Suma Brutto (wyróżniona)
-            table.Cell().Background(AccentColor).Padding(8)
-                .Text("Suma do zapłaty:").FontSize(12).Bold().FontColor(Colors.White);
-            table.Cell().Background(AccentColor).Padding(8)
-                .AlignRight().Text($"{totalGross:N2} zł").FontSize(12).Bold().FontColor(Colors.White);
         });
     }
 

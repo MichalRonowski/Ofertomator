@@ -1,18 +1,15 @@
-<Window xmlns="https://github.com/avaloniaui"
-        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:vm="using:Ofertomator.ViewModels"
-        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        mc:Ignorable="d" d:DesignWidth="1000" d:DesignHeight="600"
-        x:Class="Ofertomator.Views.SavedOffersView"
-        x:DataType="vm:SavedOffersViewModel"
-        Title="Zapisane Oferty"
-        Width="1000" Height="600"
-        WindowStartupLocation="CenterOwner"
-        Background="#1E1E1E"
-        Foreground="White">
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Ofertomator.ViewModels"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d" d:DesignWidth="1000" d:DesignHeight="600"
+             x:Class="Ofertomator.Views.SavedOffersView"
+             x:DataType="vm:SavedOffersViewModel"
+             Background="#1E1E1E"
+             Foreground="White">
 
-    <Window.Styles>
+    <UserControl.Styles>
         <Style Selector="Button">
             <Setter Property="Background" Value="#2D2D30" />
             <Setter Property="Foreground" Value="White" />
@@ -49,7 +46,7 @@
         <Style Selector="DataGridRow:selected">
             <Setter Property="Background" Value="#007ACC" />
         </Style>
-    </Window.Styles>
+    </UserControl.Styles>
 
     <DockPanel>
         <!-- Toolbar -->
@@ -123,4 +120,4 @@
             </DataGrid.Columns>
         </DataGrid>
     </DockPanel>
-</Window>
+</UserControl>

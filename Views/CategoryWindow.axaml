@@ -52,6 +52,25 @@
                           Margin="0,4,0,0"/>
             </StackPanel>
 
+            <!-- Kolejność Wyświetlania -->
+            <StackPanel>
+                <TextBlock Text="Kolejność w ofercie" 
+                          FontWeight="SemiBold" 
+                          Margin="0,0,0,8"
+                          Foreground="White"/>
+                <NumericUpDown Value="{Binding DisplayOrder}"
+                              Minimum="0"
+                              Maximum="9999"
+                              Increment="1"
+                              FormatString="F0"
+                              FontSize="14"/>
+                <TextBlock Text="Mniejsza liczba = wyżej w ofercie i PDF. Kategorie są sortowane rosnąco." 
+                          FontSize="11" 
+                          Foreground="#808080"
+                          TextWrapping="Wrap"
+                          Margin="0,4,0,0"/>
+            </StackPanel>
+
             <!-- Info -->
             <Border Background="#2D2D30" 
                    Padding="12" 

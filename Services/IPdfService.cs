@@ -15,5 +15,6 @@ public interface IPdfService
     /// <param name="items">Produkty w ofercie</param>
     /// <param name="businessCard">Dane firmy/kontaktu</param>
     /// <param name="filePath">Ścieżka docelowa pliku PDF</param>
-    Task GenerateOfferPdfAsync(IEnumerable<SavedOfferItem> items, BusinessCard businessCard, string filePath);
+    /// <param name="categoryOrder">Kolejność kategorii (null = alfabetycznie)</param>
+    Task GenerateOfferPdfAsync(IEnumerable<SavedOfferItem> items, BusinessCard businessCard, string filePath, IEnumerable<string>? categoryOrder = null);
 }

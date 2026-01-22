@@ -192,8 +192,8 @@ public partial class SavedOffersViewModel : ViewModelBase
 
             if (storageFile == null) return;
 
-            // Generuj PDF
-            await _pdfService.GenerateOfferPdfAsync(offerItems, businessCard, storageFile.Path.LocalPath);
+            // Generuj PDF (z alfabetycznym sortowaniem kategorii)
+            await _pdfService.GenerateOfferPdfAsync(offerItems, businessCard, storageFile.Path.LocalPath, null);
 
             var successBox = MessageBoxManager.GetMessageBoxStandard(
                 "Sukces",

@@ -48,7 +48,8 @@ public class DatabaseService : IDisposable
             CREATE TABLE IF NOT EXISTS Categories (
                 Id INTEGER PRIMARY KEY AUTOINCREMENT,
                 Name TEXT UNIQUE NOT NULL COLLATE NOCASE,
-                DefaultMargin REAL DEFAULT 0.0
+                DefaultMargin REAL DEFAULT 0.0,
+                DisplayOrder INTEGER DEFAULT 0
             );
         ");
 
@@ -129,6 +130,29 @@ public class DatabaseService : IDisposable
             ON SavedOfferItems(OfferId);
         ");
 
+        // === MIGRACJE ===
+        // Migracja: Dodanie kolumny DisplayOrder do Categories (jeśli nie istnieje)
+        var hasDisplayOrder = await connection.ExecuteScalarAsync<int>(@"
+            SELECT COUNT(*) 
+            FROM pragma_table_info('Categories') 
+            WHERE name='DisplayOrder'
+        ");
+
+        if (hasDisplayOrder == 0)
+        {
+            await connection.ExecuteAsync(@"
+                ALTER TABLE Categories 
+                ADD COLUMN DisplayOrder INTEGER DEFAULT 0
+            ");
+            
+            // Ustaw "Bez kategorii" na koniec (9999)
+            await connection.ExecuteAsync(@"
+                UPDATE Categories 
+                SET DisplayOrder = 9999 
+                WHERE Name = 'Bez kategorii'
+            ");
+        }
+
         // Dodanie domyślnej kategorii "Bez kategorii" jeśli nie istnieje
         var categoryExists = await connection.ExecuteScalarAsync<int>(
             "SELECT COUNT(*) FROM Categories WHERE Name = @Name",
@@ -138,8 +162,8 @@ public class DatabaseService : IDisposable
         if (categoryExists == 0)
         {
             await connection.ExecuteAsync(
-                "INSERT INTO Categories (Name, DefaultMargin) VALUES (@Name, @DefaultMargin)",
-                new { Name = "Bez kategorii", DefaultMargin = 0.0m }
+                "INSERT INTO Categories (Name, DefaultMargin, DisplayOrder) VALUES (@Name, @DefaultMargin, @DisplayOrder)",
+                new { Name = "Bez kategorii", DefaultMargin = 0.0m, DisplayOrder = 9999 }
             );
         }
 
@@ -167,7 +191,7 @@ public class DatabaseService : IDisposable
         {
             using var connection = CreateConnection();
             return await connection.QueryAsync<Category>(
-                "SELECT * FROM Categories ORDER BY Name"
+                "SELECT * FROM Categories ORDER BY DisplayOrder, Name"
             );
         }
         catch (Exception ex)
@@ -206,8 +230,8 @@ public class DatabaseService : IDisposable
         {
             using var connection = CreateConnection();
             return await connection.ExecuteScalarAsync<int>(@"
-                INSERT INTO Categories (Name, DefaultMargin) 
-                VALUES (@Name, @DefaultMargin);
+                INSERT INTO Categories (Name, DefaultMargin, DisplayOrder) 
+                VALUES (@Name, @DefaultMargin, @DisplayOrder);
                 SELECT last_insert_rowid();",
                 category
             );
@@ -229,7 +253,7 @@ public class DatabaseService : IDisposable
             using var connection = CreateConnection();
             var result = await connection.ExecuteAsync(@"
                 UPDATE Categories 
-                SET Name = @Name, DefaultMargin = @DefaultMargin 
+                SET Name = @Name, DefaultMargin = @DefaultMargin, DisplayOrder = @DisplayOrder 
                 WHERE Id = @Id",
                 category
             );
@@ -355,19 +379,25 @@ public class DatabaseService : IDisposable
     }
 
     /// <summary>
-    /// Pobiera produkty z danej kategorii (z limitem dla wydajności)
+    /// Pobiera produkty z danej kategorii (opcjonalnie z limitem dla wydajności)
     /// </summary>
-    public async Task<IEnumerable<Product>> GetProductsByCategoryAsync(int categoryId, int limit = 200)
+    public async Task<IEnumerable<Product>> GetProductsByCategoryAsync(int categoryId, int? limit = null)
     {
         try
         {
             using var connection = CreateConnection();
-            return await connection.QueryAsync<Product, Category, Product>(
-                @"SELECT p.*, c.* FROM Products p
+            var sql = @"SELECT p.*, c.* FROM Products p
                   INNER JOIN Categories c ON p.CategoryId = c.Id
                   WHERE p.CategoryId = @CategoryId
-                  ORDER BY p.Name
-                  LIMIT @Limit",
+                  ORDER BY p.Name";
+            
+            if (limit.HasValue)
+            {
+                sql += " LIMIT @Limit";
+            }
+            
+            return await connection.QueryAsync<Product, Category, Product>(
+                sql,
                 (product, category) =>
                 {
                     product.Category = category;
@@ -721,7 +751,8 @@ public class DatabaseService : IDisposable
                 await connection.ExecuteAsync(@"
                     UPDATE SavedOffers 
                     SET Title = @Title, 
-                        CreatedDate = @CreatedDate 
+                        CreatedDate = @CreatedDate,
+                        ModifiedDate = @ModifiedDate 
                     WHERE Id = @Id",
                     offer,
                     transaction
@@ -733,8 +764,8 @@ public class DatabaseService : IDisposable
             {
                 // Wstaw nowy nagłówek
                 offerId = await connection.ExecuteScalarAsync<int>(@"
-                    INSERT INTO SavedOffers (Title, CreatedDate) 
-                    VALUES (@Title, @CreatedDate);
+                    INSERT INTO SavedOffers (Title, CreatedDate, ModifiedDate) 
+                    VALUES (@Title, @CreatedDate, @ModifiedDate);
                     SELECT last_insert_rowid();",
                     offer,
                     transaction

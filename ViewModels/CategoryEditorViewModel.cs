@@ -25,6 +25,11 @@ public partial class CategoryEditorViewModel : ObservableValidator
     private decimal _defaultMargin;
 
     [ObservableProperty]
+    [Range(0, 9999, ErrorMessage = "Kolejność musi być w zakresie 0-9999")]
+    [NotifyDataErrorInfo]
+    private int _displayOrder;
+
+    [ObservableProperty]
     private string _windowTitle = "Dodaj Kategorię";
 
     #endregion
@@ -67,6 +72,7 @@ public partial class CategoryEditorViewModel : ObservableValidator
         IsEditMode = false;
         WindowTitle = "Dodaj Kategorię";
         DefaultMargin = 30m; // Domyślna marża 30%
+        DisplayOrder = 0; // Domyślna kolejność
     }
 
     /// <summary>
@@ -80,6 +86,7 @@ public partial class CategoryEditorViewModel : ObservableValidator
         
         Name = category.Name;
         DefaultMargin = category.DefaultMargin;
+        DisplayOrder = category.DisplayOrder;
     }
 
     #endregion
@@ -127,7 +134,8 @@ public partial class CategoryEditorViewModel : ObservableValidator
         {
             Id = CategoryId ?? 0,
             Name = Name.Trim(),
-            DefaultMargin = DefaultMargin
+            DefaultMargin = DefaultMargin,
+            DisplayOrder = DisplayOrder
         };
     }
 

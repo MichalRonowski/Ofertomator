@@ -1,20 +1,20 @@
 using Avalonia.Controls;
+using Avalonia.Interactivity;
 using Ofertomator.ViewModels;
 
 namespace Ofertomator.Views;
 
-public partial class SavedOffersView : Window
+public partial class SavedOffersView : UserControl
 {
     public SavedOffersView()
     {
         InitializeComponent();
+        Loaded += OnLoaded;
     }
 
-    protected override async void OnOpened(System.EventArgs e)
+    private async void OnLoaded(object? sender, RoutedEventArgs e)
     {
-        base.OnOpened(e);
-
-        // Automatyczne załadowanie listy ofert przy otwarciu okna
+        // Automatyczne załadowanie listy ofert przy załadowaniu kontrolki
         if (DataContext is SavedOffersViewModel viewModel)
         {
             await viewModel.LoadOffersCommand.ExecuteAsync(null);
