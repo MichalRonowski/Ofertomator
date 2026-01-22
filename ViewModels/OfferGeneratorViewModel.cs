@@ -86,6 +86,18 @@ public partial class OfferGeneratorViewModel : ViewModelBase
     /// Własna kolejność kategorii dla tej oferty (null = użyj domyślnej)
     /// </summary>
     private List<string>? _customCategoryOrder;
+    
+    /// <summary>
+    /// Nowa marża do zastosowania dla zaznaczonych produktów
+    /// </summary>
+    [ObservableProperty]
+    private decimal _newMarginForSelected = 0m;
+
+    /// <summary>
+    /// Nazwa oferty (domyślnie "Oferta handlowa")
+    /// </summary>
+    [ObservableProperty]
+    private string _offerName = "Oferta handlowa";
 
     #endregion
 
@@ -524,6 +536,98 @@ public partial class OfferGeneratorViewModel : ViewModelBase
     }
 
     /// <summary>
+    /// Komenda: Zaznacz wszystkie produkty w ofercie
+    /// </summary>
+    [RelayCommand]
+    private void SelectAllOfferItems()
+    {
+        foreach (var item in OfferItems)
+        {
+            item.IsSelected = true;
+        }
+        StatusMessage = $"Zaznaczono {OfferItems.Count} produktów";
+    }
+
+    /// <summary>
+    /// Komenda: Odznacz wszystkie produkty w ofercie
+    /// </summary>
+    [RelayCommand]
+    private void DeselectAllOfferItems()
+    {
+        foreach (var item in OfferItems)
+        {
+            item.IsSelected = false;
+        }
+        StatusMessage = "Odznaczono wszystkie produkty";
+    }
+
+    /// <summary>
+    /// Komenda: Przełącz zaznaczenie wszystkich produktów w kategorii
+    /// </summary>
+    [RelayCommand]
+    private void ToggleCategorySelection(string? categoryName)
+    {
+        if (string.IsNullOrEmpty(categoryName))
+            return;
+
+        try
+        {
+            var categoryItems = OfferItems.Where(x => x.CategoryName == categoryName).ToList();
+            
+            if (categoryItems.Count == 0)
+                return;
+
+            // Sprawdź czy wszystkie są zaznaczone
+            bool allSelected = categoryItems.All(x => x.IsSelected);
+            
+            // Jeśli wszystkie zaznaczone - odznacz, w przeciwnym razie - zaznacz
+            bool newState = !allSelected;
+            
+            foreach (var item in categoryItems)
+            {
+                item.IsSelected = newState;
+            }
+
+            StatusMessage = newState 
+                ? $"Zaznaczono {categoryItems.Count} produktów w kategorii '{categoryName}'"
+                : $"Odznaczono produkty w kategorii '{categoryName}'";
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Błąd przełączania zaznaczenia: {ex.Message}";
+        }
+    }
+
+    /// <summary>
+    /// Komenda: Zmień marżę dla zaznaczonych produktów
+    /// </summary>
+    [RelayCommand]
+    private void ApplyMarginToSelected()
+    {
+        try
+        {
+            var selectedItems = OfferItems.Where(x => x.IsSelected).ToList();
+            
+            if (selectedItems.Count == 0)
+            {
+                StatusMessage = "Nie zaznaczono żadnych produktów";
+                return;
+            }
+
+            foreach (var item in selectedItems)
+            {
+                item.Margin = NewMarginForSelected;
+            }
+
+            StatusMessage = $"Zmieniono marżę na {NewMarginForSelected:F2}% dla {selectedItems.Count} produktów";
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Błąd zmiany marży: {ex.Message}";
+        }
+    }
+
+    /// <summary>
     /// Komenda: Odśwież listę kategorii
     /// </summary>
     [RelayCommand]
@@ -656,11 +760,14 @@ public partial class OfferGeneratorViewModel : ViewModelBase
             }
 
             var storageProvider = mainWindow.StorageProvider;
+            var offerDate = DateTime.Now;
+            var suggestedFileName = $"{OfferName} z dnia {offerDate:yyyy-MM-dd}.pdf";
+            
             var file = await storageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
             {
                 Title = "Zapisz ofertę jako PDF",
                 DefaultExtension = "pdf",
-                SuggestedFileName = $"Oferta_{DateTime.Now:yyyyMMdd_HHmmss}.pdf",
+                SuggestedFileName = suggestedFileName,
                 FileTypeChoices = new[]
                 {
                     new FilePickerFileType("PDF Document")
@@ -682,7 +789,7 @@ public partial class OfferGeneratorViewModel : ViewModelBase
             StatusMessage = "Generowanie PDF...";
             await Task.Run(async () =>
             {
-                await _pdfService.GenerateOfferPdfAsync(OfferItems, businessCard, filePath, _customCategoryOrder);
+                await _pdfService.GenerateOfferPdfAsync(OfferItems, businessCard, filePath, OfferName, offerDate, _customCategoryOrder);
             });
 
             StatusMessage = "PDF wygenerowany pomyślnie!";
@@ -849,6 +956,51 @@ public partial class OfferGeneratorViewModel : ViewModelBase
             var errorBox = MessageBoxManager.GetMessageBoxStandard(
                 "Błąd",
                 $"Nie udało się wczytać oferty:\n{ex.Message}",
+                ButtonEnum.Ok,
+                Icon.Error);
+            await errorBox.ShowWindowDialogAsync(_getMainWindow());
+        }
+    }
+
+    /// <summary>
+    /// Wczytaj ofertę jako szablon (nowa oferta z tymi samymi produktami i cenami)
+    /// </summary>
+    public async Task LoadOfferAsTemplateAsync(List<SavedOfferItem> items)
+    {
+        try
+        {
+            // NIE ustawiaj CurrentOffer (nowa oferta)
+            CurrentOffer = null;
+
+            // Wyczyść obecną ofertę
+            OfferItems.Clear();
+
+            // Wczytaj pozycje
+            foreach (var item in items)
+            {
+                var offerItem = new SavedOfferItem
+                {
+                    ProductId = item.ProductId,
+                    Name = item.Name,
+                    CategoryName = item.CategoryName,
+                    Unit = item.Unit,
+                    PurchasePriceNet = item.PurchasePriceNet,
+                    VatRate = item.VatRate,
+                    Margin = item.Margin,
+                    Quantity = item.Quantity
+                };
+
+                OfferItems.Add(offerItem);
+            }
+
+            // Odśwież filtry
+            FilterSourceProducts();
+        }
+        catch (Exception ex)
+        {
+            var errorBox = MessageBoxManager.GetMessageBoxStandard(
+                "Błąd",
+                $"Nie udało się wczytać szablonu:\n{ex.Message}",
                 ButtonEnum.Ok,
                 Icon.Error);
             await errorBox.ShowWindowDialogAsync(_getMainWindow());

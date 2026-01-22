@@ -21,7 +21,7 @@ public class PdfGeneratorService : IPdfService
     /// <summary>
     /// Generuje PDF z ofertą handlową
     /// </summary>
-    public Task GenerateOfferPdfAsync(IEnumerable<SavedOfferItem> items, BusinessCard businessCard, string filePath, IEnumerable<string>? categoryOrder = null)
+    public Task GenerateOfferPdfAsync(IEnumerable<SavedOfferItem> items, BusinessCard businessCard, string filePath, string offerName, DateTime offerDate, IEnumerable<string>? categoryOrder = null)
     {
         return Task.Run(() =>
         {
@@ -62,7 +62,7 @@ public class PdfGeneratorService : IPdfService
                     // Ustaw czcionkę systemową dla obsługi polskich znaków
                     page.DefaultTextStyle(x => x.FontFamily("Arial").FontSize(10));
 
-                    page.Header().Element(c => ComposeHeader(c, businessCard));
+                    page.Header().Element(c => ComposeHeader(c, businessCard, offerName, offerDate));
                     page.Content().Element(c => ComposeContent(c, sortedGroups));
                     page.Footer().Element(ComposeFooter);
                 });
@@ -74,7 +74,7 @@ public class PdfGeneratorService : IPdfService
     /// <summary>
     /// Nagłówek strony: Logo + Dane firmy + Dane kontaktowe
     /// </summary>
-    private void ComposeHeader(IContainer container, BusinessCard businessCard)
+    private void ComposeHeader(IContainer container, BusinessCard businessCard, string offerName, DateTime offerDate)
     {
         container.Column(column =>
         {
@@ -84,7 +84,16 @@ public class PdfGeneratorService : IPdfService
                 // Lewa strona: Logo + Nazwa Firmy
                 row.RelativeItem(2).Column(col =>
                 {
-                    col.Item().Height(50).Width(50).Placeholder();
+                    // Logo w lewym górnym rogu
+                    var logoPath = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Assets", "logo.png");
+                    if (System.IO.File.Exists(logoPath))
+                    {
+                        col.Item().Width(250).Height(140).Image(logoPath);
+                    }
+                    else
+                    {
+                        col.Item().Width(250).Height(140).Border(1).BorderColor(Colors.Grey.Lighten1);
+                    }
                     
                     col.Item().PaddingTop(5).Text(businessCard.Company ?? "Moja Firma")
                         .FontSize(18)
@@ -95,12 +104,12 @@ public class PdfGeneratorService : IPdfService
                 // Prawa strona: OFERTA HANDLOWA + Data + Kontakt
                 row.RelativeItem(2).Column(col =>
                 {
-                    col.Item().AlignRight().Text("OFERTA HANDLOWA")
+                    col.Item().AlignRight().Text(offerName.ToUpper())
                         .FontSize(16)
                         .Bold()
                         .FontColor(AccentColor);
 
-                    col.Item().AlignRight().PaddingTop(5).Text($"Data: {DateTime.Now:dd.MM.yyyy}");
+                    col.Item().AlignRight().PaddingTop(5).Text($"Data: {offerDate:dd.MM.yyyy}");
 
                     col.Item().AlignRight().PaddingTop(10).Column(contactCol =>
                     {

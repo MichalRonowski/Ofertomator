@@ -147,6 +147,34 @@ public partial class SavedOffersViewModel : ViewModelBase
     }
 
     /// <summary>
+    /// Użyj wybranej oferty jako szablonu do nowej oferty
+    /// </summary>
+    [RelayCommand]
+    private async Task UseAsTemplateAsync()
+    {
+        if (SelectedOffer == null) return;
+
+        try
+        {
+            // Pobierz pozycje oferty
+            var items = (await _databaseService.LoadOfferItemsAsync(SelectedOffer.Id)).ToList();
+
+            // Przejdź do generatora i załaduj produkty (bez ustawiania CurrentOffer)
+            _mainViewModel.ShowOfferGenerator();
+            await _mainViewModel.OfferGeneratorViewModel.LoadOfferAsTemplateAsync(items);
+        }
+        catch (Exception ex)
+        {
+            var errorBox = MessageBoxManager.GetMessageBoxStandard(
+                "Błąd",
+                $"Nie udało się użyć oferty jako szablonu:\n{ex.Message}",
+                ButtonEnum.Ok,
+                Icon.Error);
+            await errorBox.ShowWindowDialogAsync(_getMainWindow());
+        }
+    }
+
+    /// <summary>
     /// Generuj PDF bezpośrednio z listy (bez wchodzenia do kreatora)
     /// </summary>
     [RelayCommand]
@@ -193,7 +221,13 @@ public partial class SavedOffersViewModel : ViewModelBase
             if (storageFile == null) return;
 
             // Generuj PDF (z alfabetycznym sortowaniem kategorii)
-            await _pdfService.GenerateOfferPdfAsync(offerItems, businessCard, storageFile.Path.LocalPath, null);
+            await _pdfService.GenerateOfferPdfAsync(
+                offerItems, 
+                businessCard, 
+                storageFile.Path.LocalPath, 
+                SelectedOffer.Title ?? "Oferta handlowa", 
+                SelectedOffer.CreatedDate, 
+                null);
 
             var successBox = MessageBoxManager.GetMessageBoxStandard(
                 "Sukces",

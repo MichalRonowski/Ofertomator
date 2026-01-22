@@ -46,6 +46,12 @@ public partial class SavedOfferItem : ObservableObject
     private decimal _vatRate = 23m;
     
     /// <summary>
+    /// Czy produkt jest zaznaczony do masowej edycji
+    /// </summary>
+    [ObservableProperty]
+    private bool _isSelected = false;
+    
+    /// <summary>
     /// Marża w procentach - EDYTOWALNA przez użytkownika
     /// </summary>
     private decimal _margin = 0m;

@@ -61,7 +61,11 @@
                 <Button Content="📝 Wczytaj/Edytuj" 
                         Command="{Binding LoadOfferCommand}"
                         IsEnabled="{Binding SelectedOffer, Converter={x:Static ObjectConverters.IsNotNull}}" />
-                <Button Content="📄 Generuj PDF" 
+                <Button Content="� Użyj jako szablon" 
+                        Command="{Binding UseAsTemplateCommand}"
+                        IsEnabled="{Binding SelectedOffer, Converter={x:Static ObjectConverters.IsNotNull}}"
+                        ToolTip.Tip="Użyj oferty jako podstawy do nowej oferty" />
+                <Button Content="�📄 Generuj PDF" 
                         Command="{Binding GeneratePdfCommand}"
                         IsEnabled="{Binding SelectedOffer, Converter={x:Static ObjectConverters.IsNotNull}}" />
                 <Button Content="🗑 Usuń" 
@@ -114,9 +118,6 @@
                 <DataGridTextColumn Header="Liczba Pozycji" 
                                    Binding="{Binding ItemsCount}" 
                                    Width="120" />
-                <DataGridTextColumn Header="Suma Netto" 
-                                   Binding="{Binding TotalNetFormatted}" 
-                                   Width="150" />
             </DataGrid.Columns>
         </DataGrid>
     </DockPanel>
