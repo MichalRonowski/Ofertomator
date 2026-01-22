@@ -27,7 +27,7 @@
 
         <!-- Pasek Wyszukiwania i Akcji -->
         <Grid Grid.Row="1" 
-              ColumnDefinitions="*,Auto,Auto,Auto,Auto" 
+              ColumnDefinitions="*,Auto,Auto,Auto" 
               Margin="0,0,0,15">
             
             <!-- SearchBox -->
@@ -84,21 +84,6 @@
                 <StackPanel Orientation="Horizontal" Spacing="5">
                     <TextBlock Text="✏️" FontSize="14"/>
                     <TextBlock Text="Edytuj" FontSize="14"/>
-                </StackPanel>
-            </Button>
-
-            <!-- Przycisk Usuń -->
-            <Button Grid.Column="4" 
-                    Command="{Binding DeleteProductCommand}"
-                    IsEnabled="{Binding SelectedProduct, Converter={x:Static ObjectConverters.IsNotNull}}"
-                    Padding="12,8"
-                    Margin="10,0,0,0"
-                    Background="#C8102E"
-                    Foreground="White"
-                    ToolTip.Tip="Usuń wybrany produkt">
-                <StackPanel Orientation="Horizontal" Spacing="5">
-                    <TextBlock Text="🗑️" FontSize="14"/>
-                    <TextBlock Text="Usuń" FontSize="14"/>
                 </StackPanel>
             </Button>
         </Grid>

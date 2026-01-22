@@ -348,13 +348,17 @@ public partial class ProductsViewModel : ViewModelBase
                 DataContext = editorViewModel
             };
 
+            // Inicjalizuj ViewModel (załaduj kategorie)
+            await editorViewModel.InitializeAsync();
+
             var result = await dialog.ShowDialog<bool>(mainWindow);
 
-            // Jeśli użytkownik zapisał produkt, odśwież listę
+            // Odśwież listę po zamknięciu okna (niezależnie od wyniku)
+            await LoadProductsAsync();
+            
             if (result)
             {
                 StatusMessage = "Produkt dodany pomyślnie";
-                await LoadProductsAsync();
             }
         }
         catch (Exception ex)
@@ -394,13 +398,17 @@ public partial class ProductsViewModel : ViewModelBase
                 DataContext = editorViewModel
             };
 
+            // Inicjalizuj ViewModel (załaduj kategorie)
+            await editorViewModel.InitializeAsync();
+
             var result = await dialog.ShowDialog<bool>(mainWindow);
 
-            // Jeśli użytkownik zapisał zmiany, odśwież listę
+            // Odśwież listę po zamknięciu okna (niezależnie od wyniku)
+            await LoadProductsAsync();
+            
             if (result)
             {
                 StatusMessage = "Produkt zaktualizowany pomyślnie";
-                await LoadProductsAsync();
             }
         }
         catch (Exception ex)

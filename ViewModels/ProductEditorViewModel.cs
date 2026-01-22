@@ -28,11 +28,8 @@ public partial class ProductEditorViewModel : ObservableValidator
     #region Observable Properties z Walidacją
 
     [ObservableProperty]
-    [NotifyDataErrorInfo]
-    [Required(ErrorMessage = "Kod produktu jest wymagany")]
-    [MinLength(1, ErrorMessage = "Kod musi mieć co najmniej 1 znak")]
     [MaxLength(50, ErrorMessage = "Kod może mieć maksymalnie 50 znaków")]
-    private string _code = string.Empty;
+    private string? _code;
 
     [ObservableProperty]
     [NotifyDataErrorInfo]
@@ -109,6 +106,14 @@ public partial class ProductEditorViewModel : ObservableValidator
         _originalProduct = null;
         WindowTitle = "Nowy Produkt";
         
+        // TEST: Log konstruktora
+        try
+        {
+            var testPath = System.IO.Path.Combine(System.IO.Directory.GetCurrentDirectory(), "debug_categories.txt");
+            System.IO.File.AppendAllText(testPath, $"\n=== KONSTRUKTOR (ADD MODE): {DateTime.Now} ===\n");
+        }
+        catch { }
+        
         // Subskrybuj zmiany błędów walidacji
         ErrorsChanged += (s, e) => OnPropertyChanged(nameof(CanSave));
     }
@@ -121,6 +126,14 @@ public partial class ProductEditorViewModel : ObservableValidator
         _databaseService = databaseService;
         _originalProduct = product;
         WindowTitle = $"Edycja: {product.Name}";
+
+        // TEST: Log konstruktora
+        try
+        {
+            var testPath = System.IO.Path.Combine(System.IO.Directory.GetCurrentDirectory(), "debug_categories.txt");
+            System.IO.File.AppendAllText(testPath, $"\n=== KONSTRUKTOR (EDIT MODE): {DateTime.Now} ===\n");
+        }
+        catch { }
 
         // Wypełnij formularz danymi produktu
         Code = product.Code ?? string.Empty;
@@ -136,6 +149,24 @@ public partial class ProductEditorViewModel : ObservableValidator
 
     #endregion
 
+    #region Methods
+
+    /// <summary>
+    /// Czyści formularz do wartości domyślnych
+    /// </summary>
+    private void ClearForm()
+    {
+        Code = string.Empty;
+        Name = string.Empty;
+        PurchasePriceNet = 0;
+        VatRate = 23;
+        Unit = "szt.";
+        SelectedCategory = null;
+        StatusMessage = "Formularz wyczyszczony. Możesz dodać kolejny produkt.";
+    }
+
+    #endregion
+
     #region Initialization
 
     /// <summary>
@@ -144,18 +175,28 @@ public partial class ProductEditorViewModel : ObservableValidator
     /// </summary>
     public async Task InitializeAsync()
     {
+        var logPath = System.IO.Path.Combine(System.IO.Directory.GetCurrentDirectory(), "debug_categories.txt");
+        System.IO.File.AppendAllText(logPath, "\n=== ProductEditorViewModel.InitializeAsync START ===\n");
+        
         await LoadCategoriesAsync();
 
+        System.IO.File.AppendAllText(logPath, $"=== Categories.Count after load: {Categories.Count} ===\n");
+        
         // Jeśli tryb edycji, ustaw wybraną kategorię
         if (IsEditMode && _originalProduct != null)
         {
+            System.IO.File.AppendAllText(logPath, $"=== Edit mode: looking for category ID {_originalProduct.CategoryId} ===\n");
             SelectedCategory = Categories.FirstOrDefault(c => c.Id == _originalProduct.CategoryId);
+            System.IO.File.AppendAllText(logPath, $"=== Selected category: {SelectedCategory?.Name ?? "NULL"} ===\n");
         }
         // Jeśli tryb dodawania i jest tylko jedna kategoria, wybierz ją
         else if (Categories.Count == 1)
         {
+            System.IO.File.AppendAllText(logPath, "=== Auto-selecting single category ===\n");
             SelectedCategory = Categories[0];
         }
+        
+        System.IO.File.AppendAllText(logPath, "=== ProductEditorViewModel.InitializeAsync END ===\n\n");
     }
 
     /// <summary>
@@ -163,35 +204,51 @@ public partial class ProductEditorViewModel : ObservableValidator
     /// </summary>
     private async Task LoadCategoriesAsync()
     {
+        var logPath = "debug_categories.txt";
+        System.IO.File.AppendAllText(logPath, $"\n=== LoadCategoriesAsync START {DateTime.Now} ===\n");
         try
         {
             IsBusy = true;
             StatusMessage = "Ładowanie kategorii...";
 
+            System.IO.File.AppendAllText(logPath, "=== Calling GetCategoriesAsync ===\n");
             var categories = await _databaseService.GetCategoriesAsync();
+            System.IO.File.AppendAllText(logPath, $"=== Got {categories.Count()} categories from database ===\n");
             
-            Categories.Clear();
-            foreach (var category in categories)
+            // Aktualizuj kolekcję w UI thread
+            await Avalonia.Threading.Dispatcher.UIThread.InvokeAsync(() =>
             {
-                Categories.Add(category);
-            }
+                System.IO.File.AppendAllText(logPath, "=== Clearing Categories collection ===\n");
+                Categories.Clear();
+                foreach (var category in categories)
+                {
+                    System.IO.File.AppendAllText(logPath, $"=== Adding category: {category.Name} (ID: {category.Id}) ===\n");
+                    Categories.Add(category);
+                }
+                System.IO.File.AppendAllText(logPath, $"=== Categories.Count after adding: {Categories.Count} ===\n");
+            });
 
             if (Categories.Count == 0)
             {
                 StatusMessage = "Brak kategorii w bazie. Dodaj najpierw kategorię!";
+                System.IO.File.AppendAllText(logPath, "=== No categories found ===\n");
             }
             else
             {
                 StatusMessage = $"Załadowano {Categories.Count} kategorii";
+                System.IO.File.AppendAllText(logPath, $"=== StatusMessage: {StatusMessage} ===\n");
             }
         }
         catch (Exception ex)
         {
             StatusMessage = $"Błąd ładowania kategorii: {ex.Message}";
+            System.IO.File.AppendAllText(logPath, $"=== ERROR: {ex.Message} ===\n");
+            System.IO.File.AppendAllText(logPath, $"=== Stack: {ex.StackTrace} ===\n");
         }
         finally
         {
             IsBusy = false;
+            System.IO.File.AppendAllText(logPath, "=== LoadCategoriesAsync END ===\n");
         }
     }
 
@@ -211,6 +268,7 @@ public partial class ProductEditorViewModel : ObservableValidator
             ClearErrors(nameof(CategoryId));
         }
         OnPropertyChanged(nameof(CanSave));
+        SaveCommand?.NotifyCanExecuteChanged();
     }
 
     /// <summary>
@@ -219,6 +277,7 @@ public partial class ProductEditorViewModel : ObservableValidator
     partial void OnIsBusyChanged(bool value)
     {
         OnPropertyChanged(nameof(CanSave));
+        SaveCommand?.NotifyCanExecuteChanged();
     }
 
     #endregion
@@ -231,9 +290,13 @@ public partial class ProductEditorViewModel : ObservableValidator
     [RelayCommand(CanExecute = nameof(CanSave))]
     private async Task SaveAsync()
     {
+        // Dodatkowa ochrona przed podwójnym kliknięciem
+        if (IsBusy) return;
+        
         try
         {
             IsBusy = true;
+            SaveCommand.NotifyCanExecuteChanged(); // Natychmiastowe wyłączenie przycisku
 
             // Walidacja przed zapisem
             ValidateAllProperties();
@@ -295,9 +358,18 @@ public partial class ProductEditorViewModel : ObservableValidator
 
             if (success)
             {
-                // Zamknij okno po udanym zapisie
-                await Task.Delay(500); // Krótkie opóźnienie, żeby użytkownik zobaczył komunikat
-                RequestClose?.Invoke(this, EventArgs.Empty);
+                if (IsEditMode)
+                {
+                    // Tryb edycji - zamknij okno po zapisie
+                    await Task.Delay(500);
+                    RequestClose?.Invoke(this, EventArgs.Empty);
+                }
+                else
+                {
+                    // Tryb dodawania - wyczyść formularz i zostaw okno otwarte
+                    await Task.Delay(800); // Pokaż komunikat sukcesu
+                    ClearForm();
+                }
             }
         }
         catch (Exception ex)

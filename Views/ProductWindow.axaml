@@ -107,21 +107,6 @@
         <ScrollViewer Grid.Row="1">
             <StackPanel Spacing="15">
 
-                <!-- Kod Produktu -->
-                <StackPanel>
-                    <StackPanel Orientation="Horizontal">
-                        <TextBlock Text="Kod Produktu" Classes="label"/>
-                        <TextBlock Text=" (opcjonalny)" 
-                                  FontSize="11" 
-                                  Foreground="#808080" 
-                                  VerticalAlignment="Bottom"
-                                  Margin="5,0,0,0"/>
-                    </StackPanel>
-                    
-                    <TextBox Text="{Binding Code}" 
-                            Watermark="np. PROD-001"/>
-                </StackPanel>
-
                 <!-- Nazwa Produktu (wymagana) -->
                 <StackPanel>
                     <StackPanel Orientation="Horizontal">
@@ -239,8 +224,7 @@
             <!-- Save Button -->
             <Button Grid.Column="2"
                    Content="{Binding SaveButtonText}"
-                   Command="{Binding SaveCommand}"
-                   IsEnabled="{Binding CanSave}">
+                   Command="{Binding SaveCommand}">
                 <Button.Styles>
                     <Style Selector="Button:disabled">
                         <Setter Property="ToolTip.Tip" Value="Wypełnij wymagane pola poprawnie"/>

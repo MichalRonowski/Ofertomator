@@ -9,20 +9,17 @@ public partial class ProductWindow : Window
     public ProductWindow()
     {
         InitializeComponent();
+        
+        // Podpnij zdarzenie gdy DataContext się zmieni
+        DataContextChanged += OnDataContextChanged;
     }
 
-    protected override async void OnInitialized()
+    private void OnDataContextChanged(object? sender, EventArgs e)
     {
-        base.OnInitialized();
-
-        // Inicjalizacja ViewModelu (ładowanie kategorii)
+        // Subskrybuj zdarzenie zamknięcia
         if (DataContext is ProductEditorViewModel viewModel)
         {
-            // Subskrybuj zdarzenie zamknięcia
             viewModel.RequestClose += OnRequestClose;
-
-            // Załaduj dane asynchronicznie
-            await viewModel.InitializeAsync();
         }
     }
 
@@ -43,5 +40,7 @@ public partial class ProductWindow : Window
         {
             viewModel.RequestClose -= OnRequestClose;
         }
+        
+        DataContextChanged -= OnDataContextChanged;
     }
 }

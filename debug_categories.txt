@@ -1,0 +1,176 @@
+
+=== KONSTRUKTOR (ADD MODE): 20.01.2026 18:23:35 ===
+
+=== ProductEditorViewModel.InitializeAsync START ===
+
+=== LoadCategoriesAsync START 20.01.2026 18:23:35 ===
+=== Calling GetCategoriesAsync ===
+=== Got 2 categories from database ===
+=== Clearing Categories collection ===
+=== Adding category: Bez kategorii (ID: 1) ===
+=== Adding category: test (ID: 2) ===
+=== Categories.Count after adding: 2 ===
+=== StatusMessage: Załadowano 2 kategorii ===
+=== LoadCategoriesAsync END ===
+=== Categories.Count after load: 2 ===
+=== ProductEditorViewModel.InitializeAsync END ===
+
+
+=== KONSTRUKTOR (ADD MODE): 20.01.2026 18:28:33 ===
+
+=== ProductEditorViewModel.InitializeAsync START ===
+
+=== LoadCategoriesAsync START 20.01.2026 18:28:33 ===
+=== Calling GetCategoriesAsync ===
+=== Got 2 categories from database ===
+=== Clearing Categories collection ===
+=== Adding category: Bez kategorii (ID: 1) ===
+=== Adding category: test (ID: 2) ===
+=== Categories.Count after adding: 2 ===
+=== StatusMessage: Załadowano 2 kategorii ===
+=== LoadCategoriesAsync END ===
+=== Categories.Count after load: 2 ===
+=== ProductEditorViewModel.InitializeAsync END ===
+
+
+=== KONSTRUKTOR (ADD MODE): 20.01.2026 18:32:25 ===
+
+=== ProductEditorViewModel.InitializeAsync START ===
+
+=== LoadCategoriesAsync START 20.01.2026 18:32:25 ===
+=== Calling GetCategoriesAsync ===
+=== Got 2 categories from database ===
+=== Clearing Categories collection ===
+=== Adding category: Bez kategorii (ID: 1) ===
+=== Adding category: test (ID: 2) ===
+=== Categories.Count after adding: 2 ===
+=== StatusMessage: Załadowano 2 kategorii ===
+=== LoadCategoriesAsync END ===
+=== Categories.Count after load: 2 ===
+=== ProductEditorViewModel.InitializeAsync END ===
+
+
+=== KONSTRUKTOR (ADD MODE): 20.01.2026 18:42:59 ===
+
+=== ProductEditorViewModel.InitializeAsync START ===
+
+=== LoadCategoriesAsync START 20.01.2026 18:42:59 ===
+=== Calling GetCategoriesAsync ===
+=== Got 2 categories from database ===
+=== Clearing Categories collection ===
+=== Adding category: Bez kategorii (ID: 1) ===
+=== Adding category: test (ID: 2) ===
+=== Categories.Count after adding: 2 ===
+=== StatusMessage: Załadowano 2 kategorii ===
+=== LoadCategoriesAsync END ===
+=== Categories.Count after load: 2 ===
+=== ProductEditorViewModel.InitializeAsync END ===
+
+
+=== KONSTRUKTOR (ADD MODE): 20.01.2026 18:43:16 ===
+
+=== ProductEditorViewModel.InitializeAsync START ===
+
+=== LoadCategoriesAsync START 20.01.2026 18:43:16 ===
+=== Calling GetCategoriesAsync ===
+=== Got 2 categories from database ===
+=== Clearing Categories collection ===
+=== Adding category: Bez kategorii (ID: 1) ===
+=== Adding category: test (ID: 2) ===
+=== Categories.Count after adding: 2 ===
+=== StatusMessage: Załadowano 2 kategorii ===
+=== LoadCategoriesAsync END ===
+=== Categories.Count after load: 2 ===
+=== ProductEditorViewModel.InitializeAsync END ===
+
+
+=== KONSTRUKTOR (ADD MODE): 20.01.2026 18:43:32 ===
+
+=== ProductEditorViewModel.InitializeAsync START ===
+
+=== LoadCategoriesAsync START 20.01.2026 18:43:32 ===
+=== Calling GetCategoriesAsync ===
+=== Got 2 categories from database ===
+=== Clearing Categories collection ===
+=== Adding category: Bez kategorii (ID: 1) ===
+=== Adding category: test (ID: 2) ===
+=== Categories.Count after adding: 2 ===
+=== StatusMessage: Załadowano 2 kategorii ===
+=== LoadCategoriesAsync END ===
+=== Categories.Count after load: 2 ===
+=== ProductEditorViewModel.InitializeAsync END ===
+
+
+=== KONSTRUKTOR (ADD MODE): 20.01.2026 18:46:34 ===
+
+=== ProductEditorViewModel.InitializeAsync START ===
+
+=== LoadCategoriesAsync START 20.01.2026 18:46:34 ===
+=== Calling GetCategoriesAsync ===
+=== Got 2 categories from database ===
+=== Clearing Categories collection ===
+=== Adding category: Bez kategorii (ID: 1) ===
+=== Adding category: test (ID: 2) ===
+=== Categories.Count after adding: 2 ===
+=== StatusMessage: Załadowano 2 kategorii ===
+=== LoadCategoriesAsync END ===
+=== Categories.Count after load: 2 ===
+=== ProductEditorViewModel.InitializeAsync END ===
+
+
+=== KONSTRUKTOR (EDIT MODE): 20.01.2026 18:47:05 ===
+
+=== ProductEditorViewModel.InitializeAsync START ===
+
+=== LoadCategoriesAsync START 20.01.2026 18:47:05 ===
+=== Calling GetCategoriesAsync ===
+=== Got 2 categories from database ===
+=== Clearing Categories collection ===
+=== Adding category: Bez kategorii (ID: 1) ===
+=== Adding category: test (ID: 2) ===
+=== Categories.Count after adding: 2 ===
+=== StatusMessage: Załadowano 2 kategorii ===
+=== LoadCategoriesAsync END ===
+=== Categories.Count after load: 2 ===
+=== Edit mode: looking for category ID 1 ===
+=== Selected category: Bez kategorii ===
+=== ProductEditorViewModel.InitializeAsync END ===
+
+
+=== KONSTRUKTOR (EDIT MODE): 20.01.2026 18:47:40 ===
+
+=== ProductEditorViewModel.InitializeAsync START ===
+
+=== LoadCategoriesAsync START 20.01.2026 18:47:40 ===
+=== Calling GetCategoriesAsync ===
+=== Got 2 categories from database ===
+=== Clearing Categories collection ===
+=== Adding category: Bez kategorii (ID: 1) ===
+=== Adding category: test (ID: 2) ===
+=== Categories.Count after adding: 2 ===
+=== StatusMessage: Załadowano 2 kategorii ===
+=== LoadCategoriesAsync END ===
+=== Categories.Count after load: 2 ===
+=== Edit mode: looking for category ID 1 ===
+=== Selected category: Bez kategorii ===
+=== ProductEditorViewModel.InitializeAsync END ===
+
+
+=== KONSTRUKTOR (EDIT MODE): 20.01.2026 18:52:20 ===
+
+=== ProductEditorViewModel.InitializeAsync START ===
+
+=== LoadCategoriesAsync START 20.01.2026 18:52:20 ===
+=== Calling GetCategoriesAsync ===
+=== Got 2 categories from database ===
+=== Clearing Categories collection ===
+=== Adding category: Bez kategorii (ID: 1) ===
+=== Adding category: test (ID: 2) ===
+=== Categories.Count after adding: 2 ===
+=== StatusMessage: Załadowano 2 kategorii ===
+=== LoadCategoriesAsync END ===
+=== Categories.Count after load: 2 ===
+=== Edit mode: looking for category ID 2 ===
+=== Selected category: test ===
+=== ProductEditorViewModel.InitializeAsync END ===
+
