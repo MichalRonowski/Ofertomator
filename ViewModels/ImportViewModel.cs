@@ -4,6 +4,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using MsBox.Avalonia;
 using MsBox.Avalonia.Enums;
+using Ofertomator.Helpers;
 using Ofertomator.Models;
 using Ofertomator.Services;
 using System;
@@ -219,8 +220,8 @@ public partial class ImportViewModel : ViewModelBase
                         Code = GetCellValue(row, SelectedCodeColumn),
                         Name = GetCellValue(row, SelectedNameColumn) ?? "Brak nazwy",
                         Unit = GetCellValue(row, SelectedUnitColumn) ?? "szt.",
-                        PurchasePriceNet = ParseDecimal(GetCellValue(row, SelectedPriceColumn)),
-                        VatRate = ParseDecimal(GetCellValue(row, SelectedVatColumn), 23m),
+                        PurchasePriceNet = DataParser.ParsePrice(GetCellValue(row, SelectedPriceColumn) ?? "0"),
+                        VatRate = DataParser.ParseVatRate(GetCellValue(row, SelectedVatColumn) ?? "23"),
                         PriceUpdateDate = DateTime.Now,
                         CategoryId = defaultCategory.Id // Użyj ID kategorii "Bez kategorii"
                     };

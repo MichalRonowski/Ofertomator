@@ -5,6 +5,8 @@ using Ofertomator.Services;
 
 public class TestCategories
 {
+    // WYŁĄCZONE: Nieużywane jako punkt wejścia
+    /*
     public static async Task Main()
     {
         Console.WriteLine("=== TEST START ===");
@@ -20,4 +22,5 @@ public class TestCategories
         
         Console.WriteLine("=== TEST END ===");
     }
+    */
 }

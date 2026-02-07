@@ -153,6 +153,21 @@ public class DatabaseService : IDisposable
             ");
         }
 
+        // Migracja: Dodanie kolumny CustomName do SavedOfferItems (jeśli nie istnieje)
+        var hasCustomName = await connection.ExecuteScalarAsync<int>(@"
+            SELECT COUNT(*) 
+            FROM pragma_table_info('SavedOfferItems') 
+            WHERE name='CustomName'
+        ");
+
+        if (hasCustomName == 0)
+        {
+            await connection.ExecuteAsync(@"
+                ALTER TABLE SavedOfferItems 
+                ADD COLUMN CustomName TEXT
+            ");
+        }
+
         // Dodanie domyślnej kategorii "Bez kategorii" jeśli nie istnieje
         var categoryExists = await connection.ExecuteScalarAsync<int>(
             "SELECT COUNT(*) FROM Categories WHERE Name = @Name",

@@ -12,6 +12,8 @@ namespace Ofertomator.Tests;
 /// </summary>
 public class DatabaseServiceManualTest
 {
+    // WYŁĄCZONE: Nieużywane jako punkt wejścia
+    /*
     public static async Task Main(string[] args)
     {
         Console.OutputEncoding = System.Text.Encoding.UTF8;
@@ -108,4 +110,5 @@ public class DatabaseServiceManualTest
         Console.WriteLine("\nNaciśnij Enter, aby zakończyć...");
         Console.ReadLine();
     }
+    */
 }

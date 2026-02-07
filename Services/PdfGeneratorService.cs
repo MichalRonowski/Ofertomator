@@ -188,7 +188,7 @@ public class PdfGeneratorService : IPdfService
                     var bgColor = rowIndex % 2 == 0 ? Colors.White : Colors.Grey.Lighten3;
                     rowIndex++;
 
-                    table.Cell().Background(bgColor).Padding(5).Text(item.Name ?? "-");
+                    table.Cell().Background(bgColor).Padding(5).Text(item.DisplayName ?? "-");
                     table.Cell().Background(bgColor).Padding(5).AlignRight().Text($"{item.SalePriceNet:N2} zł");
                     table.Cell().Background(bgColor).Padding(5).AlignCenter().Text($"zł/{item.Unit ?? "szt."}");
                     table.Cell().Background(bgColor).Padding(5).AlignCenter().Text($"{item.VatRate:F0}%");

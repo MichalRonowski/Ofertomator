@@ -18,8 +18,8 @@ public class CsvParser
     {
         try
         {
-            // Wczytaj wszystkie linie
-            var lines = File.ReadAllLines(filePath, Encoding.UTF8);
+            // Wczytaj wszystkie linie z automatycznym wykryciem kodowania
+            var lines = ReadAllLinesWithEncoding(filePath);
             
             if (lines.Length == 0)
                 throw new InvalidOperationException("Plik jest pusty.");
@@ -64,7 +64,7 @@ public class CsvParser
     /// </summary>
     public static List<Dictionary<string, string>> ParseAllRows(string filePath, char separator)
     {
-        var lines = File.ReadAllLines(filePath, Encoding.UTF8);
+        var lines = ReadAllLinesWithEncoding(filePath);
         if (lines.Length == 0) return new List<Dictionary<string, string>>();
 
         var headers = ParseLine(lines[0], separator);
@@ -84,6 +84,75 @@ public class CsvParser
         }
 
         return result;
+    }
+
+    /// <summary>
+    /// Wczytaj plik z automatycznym wykryciem kodowania
+    /// Próbuje różne kodowania i wybiera najlepsze
+    /// </summary>
+    private static string[] ReadAllLinesWithEncoding(string filePath)
+    {
+        // Sprawdź BOM (Byte Order Mark)
+        byte[] bom = new byte[4];
+        using (var file = new FileStream(filePath, FileMode.Open, FileAccess.Read))
+        {
+            if (file.Length >= 4)
+            {
+                file.Read(bom, 0, 4);
+            }
+        }
+
+        // UTF-8 z BOM
+        if (bom[0] == 0xEF && bom[1] == 0xBB && bom[2] == 0xBF)
+        {
+            return File.ReadAllLines(filePath, new UTF8Encoding(true));
+        }
+
+        // Brak BOM - próbuj różne kodowania
+        var encodingsToTry = new[]
+        {
+            Encoding.Default,                    // Domyślne systemowe (najczęściej Windows-1250 na polskim Windows)
+            Encoding.GetEncoding(1250),          // Windows-1250 jawnie
+            new UTF8Encoding(false),             // UTF-8 bez BOM
+            Encoding.GetEncoding("ISO-8859-2")   // Latin-2 (alternatywa dla polskiego)
+        };
+
+        string[]? bestResult = null;
+        int lowestErrorCount = int.MaxValue;
+
+        foreach (var encoding in encodingsToTry)
+        {
+            try
+            {
+                var lines = File.ReadAllLines(filePath, encoding);
+                var testSample = string.Join("", lines.Take(20));
+
+                // Policz znaki błędów/zastępcze
+                int errorCount = testSample.Count(c => 
+                    c == '�' || 
+                    c == '\uFFFD' || 
+                    c == '?' && testSample.Contains("??"));
+
+                if (errorCount < lowestErrorCount)
+                {
+                    lowestErrorCount = errorCount;
+                    bestResult = lines;
+
+                    // Jeśli znaleziono bez błędów, użyj od razu
+                    if (errorCount == 0)
+                    {
+                        return lines;
+                    }
+                }
+            }
+            catch
+            {
+                // Ignoruj błędy dla tego kodowania i próbuj następne
+            }
+        }
+
+        // Zwróć najlepszy wynik lub fallback
+        return bestResult ?? File.ReadAllLines(filePath, Encoding.Default);
     }
 
     /// <summary>

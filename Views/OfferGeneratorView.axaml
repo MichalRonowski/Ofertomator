@@ -308,12 +308,17 @@
                                                                      VerticalAlignment="Center"
                                                                      Margin="0,0,8,0"
                                                                      ToolTip.Tip="Zaznacz do masowej edycji"/>
-                                                            <TextBlock Grid.Column="1" 
-                                                                      Text="{Binding Name}" 
-                                                                      FontWeight="Bold" 
-                                                                      FontSize="12"
-                                                                      VerticalAlignment="Center"
-                                                                      Margin="0,0,10,0"/>
+                                                            <TextBox Grid.Column="1" 
+                                                                     Text="{Binding CustomName}" 
+                                                                     Watermark="{Binding Name}"
+                                                                     FontWeight="Bold" 
+                                                                     FontSize="12"
+                                                                     VerticalAlignment="Center"
+                                                                     Margin="0,0,10,0"
+                                                                     BorderThickness="0"
+                                                                     Background="Transparent"
+                                                                     Padding="2"
+                                                                     ToolTip.Tip="Edytuj nazwę produktu dla tej oferty (pozostaw puste aby użyć oryginalnej nazwy)"/>
                                                             <TextBlock Grid.Column="2" 
                                                                       Text="{Binding PurchasePriceNet, StringFormat='Zakup: {0:N2}'}" 
                                                                       FontSize="10" 

@@ -22,7 +22,21 @@ public partial class SavedOfferItem : ObservableObject
     /// Nazwa produktu (snapshot w momencie dodania do oferty)
     /// </summary>
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(DisplayName))]
     private string _name = string.Empty;
+    
+    /// <summary>
+    /// Niestandardowa nazwa produktu dla tej oferty (opcjonalna)
+    /// Jeśli jest ustawiona, będzie używana zamiast oryginalnej nazwy
+    /// </summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(DisplayName))]
+    private string? _customName;
+    
+    /// <summary>
+    /// Nazwa do wyświetlenia - customName jeśli jest ustawiona, w przeciwnym razie name
+    /// </summary>
+    public string DisplayName => !string.IsNullOrWhiteSpace(CustomName) ? CustomName : Name;
     
     /// <summary>
     /// Nazwa kategorii (snapshot)

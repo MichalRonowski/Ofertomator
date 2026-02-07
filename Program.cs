@@ -12,6 +12,9 @@ class Program
     [STAThread]
     public static void Main(string[] args)
     {
+        // Rejestracja dostawcy kodowania dla Windows-1250 i innych kodowań
+        Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
+        
         try
         {
             BuildAvaloniaApp()

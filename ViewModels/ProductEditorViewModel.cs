@@ -327,7 +327,7 @@ public partial class ProductEditorViewModel : ObservableValidator
                     Name = Name.Trim(),
                     PurchasePriceNet = PurchasePriceNet,
                     VatRate = VatRate,
-                    Unit = string.IsNullOrWhiteSpace(Unit) ? null : Unit.Trim(),
+                    Unit = string.IsNullOrWhiteSpace(Unit) ? "szt." : Unit.Trim(),
                     CategoryId = CategoryId,
                     PriceUpdateDate = DateTime.Now
                 };
@@ -346,7 +346,7 @@ public partial class ProductEditorViewModel : ObservableValidator
                     Name = Name.Trim(),
                     PurchasePriceNet = PurchasePriceNet,
                     VatRate = VatRate,
-                    Unit = string.IsNullOrWhiteSpace(Unit) ? null : Unit.Trim(),
+                    Unit = string.IsNullOrWhiteSpace(Unit) ? "szt." : Unit.Trim(),
                     CategoryId = CategoryId,
                     PriceUpdateDate = DateTime.Now
                 };
