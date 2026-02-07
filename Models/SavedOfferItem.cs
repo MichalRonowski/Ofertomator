@@ -1,4 +1,6 @@
 using System;
+using System.Globalization;
+using System.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 
 namespace Ofertomator.Models;
@@ -9,6 +11,9 @@ namespace Ofertomator.Models;
 /// </summary>
 public partial class SavedOfferItem : ObservableObject
 {
+    private Timer? _marginDebounceTimer;
+    private Timer? _salePriceDebounceTimer;
+    private const int DebounceDelayMs = 600;
     public int Id { get; set; }
     
     public int OfferId { get; set; }
@@ -83,12 +88,46 @@ public partial class SavedOfferItem : ObservableObject
                 _isUpdatingMargin = true;
                 // Aktualizuj cenę sprzedaży na podstawie marży
                 _salePriceNet = PurchasePriceNet * (1 + roundedValue / 100m);
+                
+                // Zaktualizuj input fields (jeśli zmiana nie pochodzi z input)
+                _marginInput = roundedValue.ToString("F2", CultureInfo.CurrentCulture);
+                _salePriceNetInput = Math.Round(_salePriceNet, 2).ToString("F2", CultureInfo.CurrentCulture);
+                
                 OnPropertyChanged(nameof(SalePriceNet));
+                OnPropertyChanged(nameof(MarginInput));
+                OnPropertyChanged(nameof(SalePriceNetInput));
                 OnPropertyChanged(nameof(SalePriceGross));
                 OnPropertyChanged(nameof(TotalNet));
                 OnPropertyChanged(nameof(VatAmount));
                 OnPropertyChanged(nameof(TotalGross));
                 _isUpdatingMargin = false;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Input marży z debouncing - bindowany w XAML
+    /// </summary>
+    private string _marginInput = "0,00";
+    public string MarginInput
+    {
+        get => _marginInput;
+        set
+        {
+            if (SetProperty(ref _marginInput, value))
+            {
+                // Anuluj poprzedni timer
+                _marginDebounceTimer?.Dispose();
+                
+                // Ustaw nowy timer
+                _marginDebounceTimer = new Timer(_ =>
+                {
+                    if (decimal.TryParse(value.Replace('.', ','), NumberStyles.Any, CultureInfo.CurrentCulture, out var parsedValue))
+                    {
+                        Margin = parsedValue;
+                    }
+                    _marginDebounceTimer?.Dispose();
+                }, null, DebounceDelayMs, Timeout.Infinite);
             }
         }
     }
@@ -113,13 +152,47 @@ public partial class SavedOfferItem : ObservableObject
                 if (PurchasePriceNet > 0)
                 {
                     _margin = ((roundedValue / PurchasePriceNet) - 1) * 100m;
+                    _marginInput = Math.Round(_margin, 2).ToString("F2", CultureInfo.CurrentCulture);
                     OnPropertyChanged(nameof(Margin));
+                    OnPropertyChanged(nameof(MarginInput));
                 }
+                
+                // Zaktualizuj input field
+                _salePriceNetInput = roundedValue.ToString("F2", CultureInfo.CurrentCulture);
+                
+                OnPropertyChanged(nameof(SalePriceNetInput));
                 OnPropertyChanged(nameof(SalePriceGross));
                 OnPropertyChanged(nameof(TotalNet));
                 OnPropertyChanged(nameof(VatAmount));
                 OnPropertyChanged(nameof(TotalGross));
                 _isUpdatingSalePrice = false;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Input ceny sprzedaży z debouncing - bindowany w XAML
+    /// </summary>
+    private string _salePriceNetInput = "0,00";
+    public string SalePriceNetInput
+    {
+        get => _salePriceNetInput;
+        set
+        {
+            if (SetProperty(ref _salePriceNetInput, value))
+            {
+                // Anuluj poprzedni timer
+                _salePriceDebounceTimer?.Dispose();
+                
+                // Ustaw nowy timer  
+                _salePriceDebounceTimer = new Timer(_ =>
+                {
+                    if (decimal.TryParse(value.Replace('.', ','), NumberStyles.Any, CultureInfo.CurrentCulture, out var parsedValue))
+                    {
+                        SalePriceNet = parsedValue;
+                    }
+                    _salePriceDebounceTimer?.Dispose();
+                }, null, DebounceDelayMs, Timeout.Infinite);
             }
         }
     }

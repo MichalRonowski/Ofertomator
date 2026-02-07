@@ -33,7 +33,26 @@ public class DatabaseService : IDisposable
     {
         var connection = new SqliteConnection(_connectionString);
         connection.Open();
+        
+        // Dodaj custom funkcję dla polskich znaków
+        CreatePolishLowerFunction(connection);
+        
         return connection;
+    }
+    
+    /// <summary>
+    /// Tworzy funkcję POLISH_LOWER() do konwersji tekstu na małe litery z obsługą polskich znaków
+    /// </summary>
+    private void CreatePolishLowerFunction(SqliteConnection connection)
+    {
+        connection.CreateFunction("POLISH_LOWER", (string text) =>
+        {
+            if (string.IsNullOrEmpty(text))
+                return text;
+            
+            // Używamy kultury polskiej do konwersji na małe litery
+            return text.ToLower(System.Globalization.CultureInfo.GetCultureInfo("pl-PL"));
+        });
     }
 
     /// <summary>
@@ -358,9 +377,9 @@ public class DatabaseService : IDisposable
             var offset = (pageNumber - 1) * pageSize;
             var whereClause = string.IsNullOrWhiteSpace(searchQuery) 
                 ? "" 
-                : "WHERE LOWER(p.Name) LIKE @Search OR LOWER(p.Code) LIKE @Search";
+                : "WHERE POLISH_LOWER(p.Name) LIKE POLISH_LOWER(@Search) OR POLISH_LOWER(p.Code) LIKE POLISH_LOWER(@Search)";
             
-            var searchParam = $"%{searchQuery?.ToLowerInvariant()}%";
+            var searchParam = $"%{searchQuery}%";
 
             // Pobierz łączną liczbę produktów
             var totalCount = await connection.ExecuteScalarAsync<int>(

@@ -336,7 +336,7 @@
                                                                       Margin="0,0,3,0"
                                                                       VerticalAlignment="Center"/>
                                                             <TextBox Grid.Column="5"
-                                                                    Text="{Binding Margin, StringFormat='{}{0:F2}'}"
+                                                                    Text="{Binding MarginInput}"
                                                                     Width="40"
                                                                     Height="10"
                                                                     Padding="3,1"
@@ -357,7 +357,7 @@
                                                                       Margin="0,0,3,0"
                                                                       VerticalAlignment="Center"/>
                                                             <TextBox Grid.Column="8"
-                                                                    Text="{Binding SalePriceNet, StringFormat='{}{0:F2}'}"
+                                                                    Text="{Binding SalePriceNetInput}"
                                                                     Width="60"
                                                                     Height="10"
                                                                     Padding="3,1"
