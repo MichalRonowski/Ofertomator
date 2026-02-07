@@ -162,6 +162,14 @@ public partial class ProductEditorViewModel : ObservableValidator
         VatRate = 23;
         Unit = "szt.";
         SelectedCategory = null;
+        
+        // Wyczyść wszystkie błędy walidacji
+        ClearErrors();
+        
+        // Powiadom o zmianach stanu
+        OnPropertyChanged(nameof(CanSave));
+        SaveCommand.NotifyCanExecuteChanged();
+        
         StatusMessage = "Formularz wyczyszczony. Możesz dodać kolejny produkt.";
     }
 

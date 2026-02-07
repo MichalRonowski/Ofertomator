@@ -213,29 +213,46 @@
                     </StackPanel>
 
                     <!-- Action Buttons -->
-                    <StackPanel Grid.Row="2" 
-                               Orientation="Horizontal" 
-                               Spacing="10" 
-                               Margin="0,0,0,10">
-                        <TextBlock Text="{Binding OfferItemsInfo}" 
+                    <Grid Grid.Row="2" 
+                          RowDefinitions="Auto,Auto"
+                          ColumnDefinitions="*,Auto,Auto"
+                          Margin="0,0,0,10">
+                        <!-- Pierwsza linia -->
+                        <TextBlock Grid.Row="0" Grid.Column="0"
+                                  Text="{Binding OfferItemsInfo}" 
                                   VerticalAlignment="Center" 
                                   FontSize="12" 
                                   Foreground="#B0B0B0"/>
-                        <Button Content="� Kolejność kategorii" 
-                               Command="{Binding SetCategoryOrderCommand}"
+                        <Button Grid.Row="0" Grid.Column="1"
+                               Content="✨ Nowa oferta" 
+                               Command="{Binding NewOfferCommand}"
+                               Background="#007ACC"
+                               Margin="10,0,0,0"
+                               ToolTip.Tip="Rozpocznij tworzenie nowej oferty"/>
+                        <Button Grid.Row="0" Grid.Column="2"
+                               Content="🔄 Kolejność produktów" 
+                               Command="{Binding OpenProductOrderWindowCommand}"
                                Background="#6C757D"
-                               ToolTip.Tip="Ustaw kolejność kategorii w ofercie"/>
-                        <Button Content="�💾 Zapisz Ofertę" 
-                               Command="{Binding SaveOfferCommand}"
-                               Background="#28A745"
-                               IsEnabled="{Binding !IsBusy}"
-                               ToolTip.Tip="Zapisz ofertę do bazy danych"/>
-                        <Button Content="📄 Generuj PDF" 
-                               Command="{Binding GeneratePdfCommand}"
-                               Background="#C8102E"
-                               IsEnabled="{Binding !IsBusy}"
-                               ToolTip.Tip="Wygeneruj ofertę w formacie PDF"/>
-                    </StackPanel>
+                               Margin="10,0,0,0"
+                               ToolTip.Tip="Zmień kolejność produktów w ofercie"/>
+                        
+                        <!-- Druga linia -->
+                        <StackPanel Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="3"
+                                   Orientation="Horizontal"
+                                   Spacing="10"
+                                   Margin="0,10,0,0">
+                            <Button Content="💾 Zapisz Ofertę" 
+                                   Command="{Binding SaveOfferCommand}"
+                                   Background="#28A745"
+                                   IsEnabled="{Binding !IsBusy}"
+                                   ToolTip.Tip="Zapisz ofertę do bazy danych"/>
+                            <Button Content="📄 Generuj PDF" 
+                                   Command="{Binding GeneratePdfCommand}"
+                                   Background="#C8102E"
+                                   IsEnabled="{Binding !IsBusy}"
+                                   ToolTip.Tip="Wygeneruj ofertę w formacie PDF"/>
+                        </StackPanel>
+                    </Grid>
 
                     <!-- Batch Margin Edit Section -->
                     <Border Grid.Row="3"
@@ -264,39 +281,56 @@
                                    FontSize="10"
                                    Padding="8,4"
                                    ToolTip.Tip="Zastosuj marżę do zaznaczonych produktów"/>
+                            <Button Content="🗑️ Usuń zaznaczone"
+                                   Command="{Binding RemoveSelectedCommand}"
+                                   Background="#C42B1C"
+                                   FontSize="10"
+                                   Padding="8,4"
+                                   ToolTip.Tip="Usuń zaznaczone produkty z oferty"/>
                         </StackPanel>
                     </Border>
 
-                    <!-- Offer Items List - Grouped by Category -->
-                    <ScrollViewer Grid.Row="4">
+                    <!-- Offer Items List - Grouped by Category with LAZY RENDERING -->
+                    <!-- UWAGA: Brak wirtualizacji dla kategorii (mało ich), ale jest dla produktów -->
+                    <ScrollViewer Grid.Row="4" AllowAutoHide="False">
                         <ItemsControl ItemsSource="{Binding OfferItemsGroupedByCategory}">
                             <ItemsControl.ItemTemplate>
-                                <DataTemplate>
-                                    <StackPanel Margin="0,0,0,8">
+                            <DataTemplate>
+                                <!-- LAZY RENDERING: Expander dla każdej kategorii z zapamiętywaniem stanu -->
+                                <Expander Margin="0,0,0,8" IsExpanded="{Binding IsExpanded}">
+                                    <Expander.Header>
                                         <!-- Category Header -->
                                         <Border Background="#C8102E" 
                                                Padding="6" 
-                                               CornerRadius="3"
-                                               Margin="0,0,0,3">
+                                               CornerRadius="3">
                                             <Grid ColumnDefinitions="Auto,*">
                                                 <CheckBox Grid.Column="0"
                                                          Margin="0,0,10,0"
                                                          VerticalAlignment="Center"
                                                          ToolTip.Tip="Zaznacz/odznacz wszystkie w tej kategorii"
                                                          Command="{Binding $parent[UserControl].((vm:OfferGeneratorViewModel)DataContext).ToggleCategorySelectionCommand}"
-                                                         CommandParameter="{Binding Key}"/>
+                                                         CommandParameter="{Binding CategoryName}"/>
                                                 <TextBlock Grid.Column="1"
-                                                          Text="{Binding Key}" 
+                                                          Text="{Binding CategoryName}" 
                                                           FontWeight="Bold" 
                                                           FontSize="12"
                                                           Foreground="White"
                                                           VerticalAlignment="Center"/>
                                             </Grid>
                                         </Border>
+                                    </Expander.Header>
                                         
-                                        <!-- Products in this category -->
-                                        <ItemsControl ItemsSource="{Binding}">
-                                            <ItemsControl.ItemTemplate>
+                                    <!-- Products in this category - VIRTUALIZED (lazy rendered) -->
+                                    <ListBox ItemsSource="{Binding Items}"
+                                            Background="Transparent"
+                                            BorderThickness="0"
+                                            Margin="0,3,0,0">
+                                        <ListBox.ItemsPanel>
+                                            <ItemsPanelTemplate>
+                                                <VirtualizingStackPanel/>
+                                            </ItemsPanelTemplate>
+                                        </ListBox.ItemsPanel>
+                                        <ListBox.ItemTemplate>
                                                 <DataTemplate>
                                                     <Border Background="#2D2D30" 
                                                            Padding="4" 
@@ -379,12 +413,12 @@
                                                         </Grid>
                                                     </Border>
                                                 </DataTemplate>
-                                            </ItemsControl.ItemTemplate>
-                                        </ItemsControl>
-                                    </StackPanel>
-                                </DataTemplate>
-                            </ItemsControl.ItemTemplate>
-                        </ItemsControl>
+                                            </ListBox.ItemTemplate>
+                                        </ListBox>
+                                </Expander>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
                     </ScrollViewer>
                 </Grid>
             </Border>

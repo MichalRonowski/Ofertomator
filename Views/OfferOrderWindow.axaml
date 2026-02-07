@@ -1,0 +1,346 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:vm="clr-namespace:Ofertomator.ViewModels"
+        mc:Ignorable="d" d:DesignWidth="900" d:DesignHeight="700"
+        x:Class="Ofertomator.Views.OfferOrderWindow"
+        x:DataType="vm:OfferOrderViewModel"
+        Title="Kolejność produktów w ofercie"
+        Width="900" Height="700"
+        MinWidth="800" MinHeight="600"
+        WindowStartupLocation="CenterOwner"
+        Background="#1E1E1E">
+
+    <Window.Styles>
+        <!-- Dark Theme Styling -->
+        <Style Selector="TextBlock">
+            <Setter Property="Foreground" Value="White"/>
+        </Style>
+
+        <Style Selector="TextBlock.header">
+            <Setter Property="FontSize" Value="16"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="Foreground" Value="#007ACC"/>
+            <Setter Property="Margin" Value="0,0,0,10"/>
+        </Style>
+
+        <Style Selector="ListBox">
+            <Setter Property="Background" Value="#2D2D30"/>
+            <Setter Property="BorderBrush" Value="#3E3E42"/>
+            <Setter Property="BorderThickness" Value="1"/>
+        </Style>
+
+        <Style Selector="ListBoxItem">
+            <Setter Property="Padding" Value="10,8"/>
+        </Style>
+
+        <Style Selector="ListBoxItem:selected /template/ ContentPresenter">
+            <Setter Property="Background" Value="#007ACC"/>
+        </Style>
+
+        <Style Selector="Button">
+            <Setter Property="Background" Value="#0E639C"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="10,5"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Margin" Value="5"/>
+        </Style>
+
+        <Style Selector="Button:pointerover">
+            <Setter Property="Background" Value="#1177BB"/>
+        </Style>
+
+        <Style Selector="Button:disabled">
+            <Setter Property="Background" Value="#3E3E42"/>
+            <Setter Property="Foreground" Value="#666666"/>
+            <Setter Property="Cursor" Value="Arrow"/>
+        </Style>
+
+        <Style Selector="Button.success">
+            <Setter Property="Background" Value="#0E8C3A"/>
+        </Style>
+
+        <Style Selector="Button.success:pointerover">
+            <Setter Property="Background" Value="#10A647"/>
+        </Style>
+
+        <Style Selector="Button.danger">
+            <Setter Property="Background" Value="#5A5A5A"/>
+        </Style>
+
+        <Style Selector="Button.danger:pointerover">
+            <Setter Property="Background" Value="#707070"/>
+        </Style>
+
+        <Style Selector="CheckBox">
+            <Setter Property="Foreground" Value="White"/>
+        </Style>
+
+        <Style Selector="Border.section">
+            <Setter Property="Background" Value="#252526"/>
+            <Setter Property="BorderBrush" Value="#3E3E42"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CornerRadius" Value="5"/>
+            <Setter Property="Padding" Value="15"/>
+            <Setter Property="Margin" Value="10"/>
+        </Style>
+
+        <Style Selector="Expander">
+            <Setter Property="Background" Value="#2D2D30"/>
+            <Setter Property="BorderBrush" Value="#3E3E42"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Margin" Value="0,2"/>
+        </Style>
+
+        <Style Selector="Expander /template/ ToggleButton#ExpanderHeader">
+            <Setter Property="Background" Value="#2D2D30"/>
+            <Setter Property="Foreground" Value="White"/>
+        </Style>
+
+        <Style Selector="Expander /template/ ToggleButton#ExpanderHeader:pointerover">
+            <Setter Property="Background" Value="#3E3E42"/>
+        </Style>
+
+        <Style Selector="ListBox.categoryList">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+        </Style>
+
+        <Style Selector="ListBox.categoryList > ListBoxItem">
+            <Setter Property="Padding" Value="0"/>
+            <Setter Property="Background" Value="Transparent"/>
+        </Style>
+
+        <Style Selector="ListBox.categoryList > ListBoxItem:selected /template/ ContentPresenter">
+            <Setter Property="Background" Value="#3E3E42"/>
+        </Style>
+    </Window.Styles>
+
+    <Grid RowDefinitions="Auto,*,Auto,Auto">
+
+        <!-- Header -->
+        <Border Grid.Row="0" Background="#2D2D30" Padding="15">
+            <StackPanel>
+                <TextBlock Text="Zarządzanie kolejnością produktów" 
+                          FontSize="20" 
+                          FontWeight="Bold" 
+                          Foreground="#007ACC"/>
+                <TextBlock Text="{Binding StatusMessage}" 
+                          FontSize="12" 
+                          Foreground="#B0B0B0" 
+                          Margin="0,5,0,0"/>
+                <TextBlock Text="💡 Zaznacz produkt i użyj strzałek lub przeciągnij go w nowe miejsce" 
+                          FontSize="11" 
+                          Foreground="#808080" 
+                          Margin="0,2,0,0"/>
+            </StackPanel>
+        </Border>
+
+        <!-- Main Content -->
+        <Grid Grid.Row="1" ColumnDefinitions="*,Auto,250">
+
+            <!-- Lista produktów -->
+            <Border Grid.Column="0" Classes="section">
+                <Grid RowDefinitions="Auto,*">
+                    <!-- Opcje widoku -->
+                    <StackPanel Grid.Row="0" Margin="0,0,0,10">
+                        <!-- Przyciski sortowania -->
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="Sortuj:" 
+                                      VerticalAlignment="Center" 
+                                      Margin="0,0,10,0"
+                                      Foreground="#B0B0B0"/>
+                            <Button Content="⬆️ A-Z" 
+                                   Command="{Binding SortAlphabeticallyCommand}"
+                                   ToolTip.Tip="Sortuj alfabetycznie po nazwie produktu"/>
+                        </StackPanel>
+                    </StackPanel>
+
+                    <!-- Widok zgrupowany po kategoriach -->
+                    <ListBox Grid.Row="1"
+                            ItemsSource="{Binding GroupedItems}"
+                            SelectedItem="{Binding SelectedGroup}"
+                            SelectionMode="Single"
+                            Classes="categoryList"
+                            ScrollViewer.VerticalScrollBarVisibility="Auto">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <Expander Header="{Binding CategoryName}" 
+                                         IsExpanded="{Binding IsExpanded}"
+                                         Margin="0,5">
+                                    <Expander.Header>
+                                        <Grid ColumnDefinitions="Auto,*,Auto">
+                                            <TextBlock Grid.Column="0" 
+                                                      Text="📁 " 
+                                                      FontSize="14"
+                                                      VerticalAlignment="Center"/>
+                                            <TextBlock Grid.Column="1" 
+                                                      Text="{Binding CategoryName}" 
+                                                      FontWeight="Bold"
+                                                      VerticalAlignment="Center"/>
+                                            <TextBlock Grid.Column="2" 
+                                                      Text="{Binding Items.Count, StringFormat='({0})'}" 
+                                                      Foreground="#808080"
+                                                      Margin="10,0,0,0"
+                                                      VerticalAlignment="Center"/>
+                                        </Grid>
+                                    </Expander.Header>
+
+                                    <ListBox ItemsSource="{Binding Items}"
+                                            Background="Transparent"
+                                            BorderThickness="0"
+                                            Margin="20,5,0,5"
+                                            SelectionMode="Single"
+                                            DragDrop.AllowDrop="True"
+                                            Name="NestedListBox">
+                                        <ListBox.ItemTemplate>
+                                            <DataTemplate>
+                                                <Grid ColumnDefinitions="Auto,*"
+                                                      Background="Transparent"
+                                                      PointerPressed="OnPointerPressed"
+                                                      Cursor="Hand">
+                                                    <TextBlock Grid.Column="0" 
+                                                              Text="☰" 
+                                                              FontSize="12"
+                                                              Foreground="#808080"
+                                                              Margin="0,0,10,0"
+                                                              VerticalAlignment="Center"
+                                                              ToolTip.Tip="Przeciągnij aby zmienić kolejność"/>
+                                                    
+                                                    <TextBlock Grid.Column="1" 
+                                                              Text="{Binding DisplayName}"
+                                                              TextWrapping="Wrap"/>
+                                                </Grid>
+                                            </DataTemplate>
+                                        </ListBox.ItemTemplate>
+                                    </ListBox>
+                                </Expander>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                </Grid>
+            </Border>
+
+            <!-- Separador vertical -->
+            <Border Grid.Column="1" Width="1" Background="#3E3E42" Margin="5,10"/>
+
+            <!-- Panel kontrolny z przyciskami -->
+            <Border Grid.Column="2" Classes="section">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <StackPanel Spacing="10">
+                        <TextBlock Text="Operacje na produktach" 
+                                  Classes="header"
+                                  FontSize="14"/>
+
+                        <!-- Strzałki dla pojedynczych produktów -->
+                        <StackPanel Spacing="5">
+                            <Button Content="⬆️⬆️ Na początek" 
+                                   Command="{Binding MoveToTopCommand}"
+                                   HorizontalAlignment="Stretch"
+                                   HorizontalContentAlignment="Left"/>
+                            
+                            <Button Content="⬆️ W górę" 
+                                   Command="{Binding MoveUpCommand}"
+                                   HorizontalAlignment="Stretch"
+                                   HorizontalContentAlignment="Left"/>
+                            
+                            <Button Content="⬇️ W dół" 
+                                   Command="{Binding MoveDownCommand}"
+                                   HorizontalAlignment="Stretch"
+                                   HorizontalContentAlignment="Left"/>
+                            
+                            <Button Content="⬇️⬇️ Na koniec" 
+                                   Command="{Binding MoveToBottomCommand}"
+                                   HorizontalAlignment="Stretch"
+                                   HorizontalContentAlignment="Left"/>
+                        </StackPanel>
+
+                        <!-- Separador -->
+                        <Border Height="1" Background="#3E3E42" Margin="0,10"/>
+
+                        <!-- Operacje na kategoriach -->
+                        <StackPanel Spacing="5">
+                            <TextBlock Text="Operacje na kategoriach" 
+                                      Classes="header"
+                                      FontSize="14"/>
+                            
+                            <TextBlock Text="Kliknij na nazwę kategorii w Expander aby ją zaznaczyć" 
+                                      FontSize="10"
+                                      Foreground="#808080"
+                                      TextWrapping="Wrap"
+                                      Margin="0,0,0,5"/>
+
+                            <Button Content="⬆️ Kategoria w górę" 
+                                   Command="{Binding MoveCategoryUpCommand}"
+                                   HorizontalAlignment="Stretch"
+                                   HorizontalContentAlignment="Left"/>
+                            
+                            <Button Content="⬇️ Kategoria w dół" 
+                                   Command="{Binding MoveCategoryDownCommand}"
+                                   HorizontalAlignment="Stretch"
+                                   HorizontalContentAlignment="Left"/>
+                        </StackPanel>
+
+                        <!-- Separador -->
+                        <Border Height="1" Background="#3E3E42" Margin="0,10"/>
+
+                        <!-- Podgląd statystyk -->
+                        <StackPanel Spacing="5">
+                            <TextBlock Text="📊 Statystyki" 
+                                      Classes="header"
+                                      FontSize="14"/>
+                            
+                            <TextBlock>
+                                <Run Text="Produktów: "/>
+                                <Run Text="{Binding WorkingItems.Count}" FontWeight="Bold" Foreground="#007ACC"/>
+                            </TextBlock>
+
+                            <TextBlock>
+                                <Run Text="Kategorii: "/>
+                                <Run Text="{Binding GroupedItems.Count}" FontWeight="Bold" Foreground="#007ACC"/>
+                            </TextBlock>
+
+                            <TextBlock IsVisible="{Binding HasChanges}">
+                                <Run Text="⚠️ Niezapisane zmiany" Foreground="#FFA500"/>
+                            </TextBlock>
+                        </StackPanel>
+                    </StackPanel>
+                </ScrollViewer>
+            </Border>
+        </Grid>
+
+        <!-- Separador -->
+        <Border Grid.Row="2" Height="1" Background="#3E3E42"/>
+
+        <!-- Przyciski akcji -->
+        <Border Grid.Row="3" Background="#2D2D30" Padding="15">
+            <Grid ColumnDefinitions="Auto,*,Auto,Auto,Auto">
+                <Button Grid.Column="0" 
+                       Content="🔄 Resetuj" 
+                       Command="{Binding ResetToOriginalCommand}"
+                       Classes="danger"
+                       ToolTip.Tip="Przywróć oryginalną kolejność"/>
+
+                <!-- Spacer -->
+                <StackPanel Grid.Column="1"/>
+
+                <Button Grid.Column="2" 
+                       Content="Anuluj" 
+                       Command="{Binding CancelCommand}"
+                       CommandParameter="{Binding $parent[Window]}"
+                       Classes="danger"
+                       MinWidth="100"/>
+
+                <Button Grid.Column="3" 
+                       Content="Zastosuj" 
+                       Command="{Binding ApplyCommand}"
+                       CommandParameter="{Binding $parent[Window]}"
+                       Classes="success"
+                       MinWidth="100"/>
+            </Grid>
+        </Border>
+    </Grid>
+
+</Window>

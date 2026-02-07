@@ -12,6 +12,7 @@ using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 using System.Diagnostics;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Ofertomator.ViewModels;
@@ -25,6 +26,17 @@ public partial class OfferGeneratorViewModel : ViewModelBase
     private readonly DatabaseService _databaseService;
     private readonly IPdfService _pdfService;
     private readonly Func<Window?> _getMainWindow;
+
+    // Debouncing dla UpdateOfferSummary
+    private Timer? _updateSummaryDebounceTimer;
+    private const int SummaryDebounceDelayMs = 300;
+    private bool _suppressNotifications = false;
+
+    // Cache dla grupowania kategorii (Etap 3) + zapamiętywanie stanów IsExpanded
+    private ObservableCollection<CategoryGroup>? _cachedGroupedItems;
+    private int _lastCachedVersion = -1;
+    private int _currentCollectionVersion = 0;
+    private Dictionary<string, bool> _categoryExpandedStates = new();
 
     #region Observable Properties
 
@@ -82,10 +94,7 @@ public partial class OfferGeneratorViewModel : ViewModelBase
     [ObservableProperty]
     private string _statusMessage = "Gotowy";
 
-    /// <summary>
-    /// Własna kolejność kategorii dla tej oferty (null = użyj domyślnej)
-    /// </summary>
-    private List<string>? _customCategoryOrder;
+
     
     /// <summary>
     /// Nowa marża do zastosowania dla zaznaczonych produktów
@@ -130,29 +139,53 @@ public partial class OfferGeneratorViewModel : ViewModelBase
 
     /// <summary>
     /// Produkty w ofercie pogrupowane według kategorii (sortowane według własnej kolejności lub DisplayOrder)
+    /// OPTYMALIZACJA: Cachowane - przelicza tylko gdy zmienia się struktura kolekcji
+    /// ZAPAMIĘTUJE stany IsExpanded dla każdej kategorii
     /// </summary>
-    public IEnumerable<IGrouping<string, SavedOfferItem>> OfferItemsGroupedByCategory
+    public ObservableCollection<CategoryGroup> OfferItemsGroupedByCategory
     {
         get
         {
+            // Użyj cache jeśli wersja się nie zmieniła
+            if (_cachedGroupedItems != null && _lastCachedVersion == _currentCollectionVersion)
+            {
+                return _cachedGroupedItems;
+            }
+
+            // Zapisz obecne stany IsExpanded przed przeliczeniem
+            if (_cachedGroupedItems != null)
+            {
+                foreach (var group in _cachedGroupedItems)
+                {
+                    _categoryExpandedStates[group.CategoryName] = group.IsExpanded;
+                }
+            }
+
+            // Przelicz i zapisz w cache
             var grouped = OfferItems
                 .GroupBy(item => item.CategoryName ?? "Bez kategorii")
                 .ToList();
 
-            // Jeśli jest własna kolejność, użyj jej
-            if (_customCategoryOrder != null && _customCategoryOrder.Count > 0)
+            // Sortuj według DisplayOrder z Categories
+            var categoryDict = Categories.ToDictionary(c => c.Name, c => c.DisplayOrder);
+            var sortedGroups = grouped.OrderBy(g => categoryDict.TryGetValue(g.Key, out var order) ? order : 9999);
+
+            // Konwertuj na CategoryGroup z zachowanymi stanami IsExpanded
+            _cachedGroupedItems = new ObservableCollection<CategoryGroup>();
+            foreach (var group in sortedGroups)
             {
-                var orderDict = _customCategoryOrder
-                    .Select((name, index) => new { name, index })
-                    .ToDictionary(x => x.name, x => x.index);
-                
-                return grouped.OrderBy(g => orderDict.TryGetValue(g.Key, out var order) ? order : 9999);
+                var categoryGroup = new CategoryGroup
+                {
+                    CategoryName = group.Key,
+                    Items = group.ToList(),
+                    // Przywróć poprzedni stan lub domyślnie rozwinięty
+                    IsExpanded = _categoryExpandedStates.TryGetValue(group.Key, out var isExpanded) ? isExpanded : true
+                };
+                _cachedGroupedItems.Add(categoryGroup);
             }
 
-            // Jeśli nie ma własnej kolejności, użyj DisplayOrder z Categories
-            var categoryDict = Categories.ToDictionary(c => c.Name, c => c.DisplayOrder);
-            
-            return grouped.OrderBy(g => categoryDict.TryGetValue(g.Key, out var order) ? order : 9999);
+            _lastCachedVersion = _currentCollectionVersion;
+            return _cachedGroupedItems;
         }
     }
 
@@ -274,39 +307,77 @@ public partial class OfferGeneratorViewModel : ViewModelBase
             }
         }
 
+        // Invalidate cache - zmiana struktury kolekcji
+        _currentCollectionVersion++;
+
         // Aktualizuj podsumowanie
         UpdateOfferSummary();
 
-        // Odśwież dostępne produkty (produkty w ofercie znikają ze środkowej kolumny)
-        FilterSourceProducts();
-    }
-
-    /// <summary>
-    /// Handler zmiany property w SavedOfferItem (Quantity, Margin)
-    /// Aktualizuje podsumowanie w czasie rzeczywistym
-    /// </summary>
-    private void OnOfferItemPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
-    {
-        // Jeśli zmieniono Quantity lub Margin, zaktualizuj podsumowanie
-        if (e.PropertyName == nameof(SavedOfferItem.Quantity) ||
-            e.PropertyName == nameof(SavedOfferItem.Margin) ||
-            e.PropertyName == nameof(SavedOfferItem.TotalGross))
+        // Odśwież dostępne produkty tylko gdy usuwamy z oferty
+        // (przy dodawaniu produkt jest już usunięty z SourceProducts w AddProductToOffer)
+        if (e.Action == NotifyCollectionChangedAction.Remove || 
+            e.Action == NotifyCollectionChangedAction.Reset)
         {
-            UpdateOfferSummary();
+            FilterSourceProducts();
         }
     }
 
     /// <summary>
-    /// Aktualizuje computed properties podsumowania oferty
+    /// Handler zmiany property w SavedOfferItem (Quantity, Margin)
+    /// Aktualizuje podsumowanie w czasie rzeczywistym z debouncing
     /// </summary>
-    private void UpdateOfferSummary()
+    private void OnOfferItemPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
     {
+        // Jeśli zmieniono Quantity lub Margin, zaktualizuj podsumowanie z debouncing
+        if (e.PropertyName == nameof(SavedOfferItem.Quantity) ||
+            e.PropertyName == nameof(SavedOfferItem.Margin) ||
+            e.PropertyName == nameof(SavedOfferItem.TotalGross))
+        {
+            UpdateOfferSummaryDebounced();
+        }
+    }
+
+    /// <summary>
+    /// Aktualizuje computed properties podsumowania oferty z debouncing
+    /// </summary>
+    private void UpdateOfferSummaryDebounced()
+    {
+        if (_suppressNotifications) return;
+
+        // Anuluj poprzedni timer
+        _updateSummaryDebounceTimer?.Dispose();
+        
+        // Ustaw nowy timer
+        _updateSummaryDebounceTimer = new Timer(_ =>
+        {
+            UpdateOfferSummaryImmediate();
+            _updateSummaryDebounceTimer?.Dispose();
+        }, null, SummaryDebounceDelayMs, Timeout.Infinite);
+    }
+
+    /// <summary>
+    /// Natychmiastowa aktualizacja podsumowania (bez debouncing)
+    /// </summary>
+    private void UpdateOfferSummaryImmediate()
+    {
+        if (_suppressNotifications) return;
+
         OnPropertyChanged(nameof(TotalOfferNet));
         OnPropertyChanged(nameof(TotalOfferVat));
         OnPropertyChanged(nameof(TotalOfferGross));
         OnPropertyChanged(nameof(OfferItemsCount));
         OnPropertyChanged(nameof(OfferItemsInfo));
+        
+        // NIE invaliduj cache dla grupowania - tylko dla zmian wartości, nie struktury
         OnPropertyChanged(nameof(OfferItemsGroupedByCategory));
+    }
+
+    /// <summary>
+    /// Aktualizacja bez debounce (dla operacji strukturalnych)
+    /// </summary>
+    private void UpdateOfferSummary()
+    {
+        UpdateOfferSummaryImmediate();
     }
 
     #endregion
@@ -426,6 +497,10 @@ public partial class OfferGeneratorViewModel : ViewModelBase
             // Dodaj do oferty
             OfferItems.Add(offerItem);
 
+            // Usuń produkt z listy źródłowej aby nie przebudowywać całej listy
+            // (zapobiega niepożądanemu przewijaniu ListBox)
+            SourceProducts.Remove(product);
+
             StatusMessage = $"Dodano: {product.Name}";
         }
         catch (Exception ex)
@@ -459,6 +534,7 @@ public partial class OfferGeneratorViewModel : ViewModelBase
 
     /// <summary>
     /// Komenda: Dodaj wszystkie produkty z aktualnie wybranej kategorii
+    /// BATCH OPERATION - zawiesza notyfikacje
     /// </summary>
     [RelayCommand]
     private void AddAllProductsFromCategory()
@@ -480,6 +556,9 @@ public partial class OfferGeneratorViewModel : ViewModelBase
 
             var defaultMargin = SelectedCategory.DefaultMargin;
             int addedCount = 0;
+
+            // BATCH: Zawieś notyfikacje
+            _suppressNotifications = true;
 
             foreach (var product in productsToAdd)
             {
@@ -503,10 +582,18 @@ public partial class OfferGeneratorViewModel : ViewModelBase
                 addedCount++;
             }
 
+            // BATCH: Wznów notyfikacje i zaktualizuj raz
+            _suppressNotifications = false;
+            UpdateOfferSummary();
+
+            // Wyczyść listę źródłową po dodaniu wszystkich produktów
+            SourceProducts.Clear();
+
             StatusMessage = $"Dodano {addedCount} produktów z kategorii '{SelectedCategory.Name}'";
         }
         catch (Exception ex)
         {
+            _suppressNotifications = false;
             StatusMessage = $"Błąd dodawania produktów: {ex.Message}";
         }
     }
@@ -600,6 +687,7 @@ public partial class OfferGeneratorViewModel : ViewModelBase
 
     /// <summary>
     /// Komenda: Zmień marżę dla zaznaczonych produktów
+    /// BATCH OPERATION - zawiesza notyfikacje
     /// </summary>
     [RelayCommand]
     private void ApplyMarginToSelected()
@@ -614,16 +702,65 @@ public partial class OfferGeneratorViewModel : ViewModelBase
                 return;
             }
 
+            // BATCH: Zawieś notyfikacje
+            _suppressNotifications = true;
+
             foreach (var item in selectedItems)
             {
                 item.Margin = NewMarginForSelected;
+                item.IsSelected = false; // Wyczyść zaznaczenie po zastosowaniu marży
             }
+
+            // BATCH: Wznów notyfikacje i zaktualizuj raz
+            _suppressNotifications = false;
+            UpdateOfferSummary();
 
             StatusMessage = $"Zmieniono marżę na {NewMarginForSelected:F2}% dla {selectedItems.Count} produktów";
         }
         catch (Exception ex)
         {
+            _suppressNotifications = false;
             StatusMessage = $"Błąd zmiany marży: {ex.Message}";
+        }
+    }
+
+    /// <summary>
+    /// Komenda: Usuń zaznaczone produkty z oferty
+    /// BATCH OPERATION - zawiesza notyfikacje
+    /// </summary>
+    [RelayCommand]
+    private void RemoveSelected()
+    {
+        try
+        {
+            var selectedItems = OfferItems.Where(x => x.IsSelected).ToList();
+            
+            if (selectedItems.Count == 0)
+            {
+                StatusMessage = "Nie zaznaczono żadnych produktów do usunięcia";
+                return;
+            }
+
+            int count = selectedItems.Count;
+            
+            // BATCH: Zawieś notyfikacje
+            _suppressNotifications = true;
+            
+            foreach (var item in selectedItems)
+            {
+                OfferItems.Remove(item);
+            }
+
+            // BATCH: Wznów notyfikacje i zaktualizuj raz
+            _suppressNotifications = false;
+            UpdateOfferSummary();
+
+            StatusMessage = $"Usunięto {count} produktów z oferty";
+        }
+        catch (Exception ex)
+        {
+            _suppressNotifications = false;
+            StatusMessage = $"Błąd usuwania produktów: {ex.Message}";
         }
     }
 
@@ -637,80 +774,88 @@ public partial class OfferGeneratorViewModel : ViewModelBase
     }
 
     /// <summary>
-    /// Komenda: Ustaw kolejność kategorii dla tej oferty
+    /// Komenda: Otwórz okno zarządzania kolejnością produktów
     /// </summary>
     [RelayCommand]
-    private async Task SetCategoryOrderAsync()
+    private async Task OpenProductOrderWindowAsync()
     {
+        if (OfferItems.Count == 0)
+        {
+            var emptyBox = MessageBoxManager.GetMessageBoxStandard(
+                "Pusta oferta",
+                "Dodaj produkty do oferty, aby zmienić ich kolejność.",
+                ButtonEnum.Ok,
+                Icon.Info);
+            await emptyBox.ShowAsync();
+            return;
+        }
+
         try
         {
-            // Pobierz unikalne kategorie z aktualnej oferty
-            var categoriesInOffer = OfferItems
-                .Select(item => item.CategoryName ?? "Bez kategorii")
-                .Distinct()
-                .ToList();
+            // Stwórz ViewModel z callbackiem do zastosowania zmian
+            var viewModel = new OfferOrderViewModel(
+                OfferItems.ToList(),
+                onApply: (newOrder) =>
+                {
+                    // Zastosuj nową kolejność do OfferItems
+                    ApplyNewProductOrder(newOrder);
+                },
+                onCancel: null
+            );
 
-            if (categoriesInOffer.Count == 0)
-            {
-                var emptyBox = MessageBoxManager.GetMessageBoxStandard(
-                    "Pusta oferta",
-                    "Dodaj produkty do oferty, aby ustawić kolejność kategorii.",
-                    ButtonEnum.Ok,
-                    Icon.Info);
-                await emptyBox.ShowAsync();
-                return;
-            }
-
-            // Scal istniejącą kolejność z nowymi kategoriami
-            List<string> currentOrder;
-            if (_customCategoryOrder != null && _customCategoryOrder.Any())
-            {
-                // Zacznij od istniejącej kolejności
-                currentOrder = new List<string>(_customCategoryOrder);
-                
-                // Dodaj nowe kategorie (które są w ofercie, ale nie ma ich w kolejności)
-                var newCategories = categoriesInOffer
-                    .Where(cat => !_customCategoryOrder.Contains(cat))
-                    .OrderBy(cat => cat)
-                    .ToList();
-                
-                currentOrder.AddRange(newCategories);
-            }
-            else
-            {
-                // Pierwsza konfiguracja - użyj wszystkich kategorii alfabetycznie
-                currentOrder = categoriesInOffer.OrderBy(cat => cat).ToList();
-            }
-
-            // Otwórz okno dialogowe
-            var viewModel = new CategoryOrderViewModel(currentOrder);
-            var window = new Views.CategoryOrderWindow
+            // Stwórz i otwórz okno
+            var window = new Views.OfferOrderWindow
             {
                 DataContext = viewModel
             };
-
-            viewModel.RequestClose += (s, e) => window.Close();
 
             var mainWindow = _getMainWindow();
             if (mainWindow != null)
             {
                 await window.ShowDialog(mainWindow);
-
-                if (viewModel.DialogResult)
-                {
-                    // Zapisz nową kolejność
-                    _customCategoryOrder = viewModel.GetOrderedCategoryNames();
-                    
-                    // Odśwież wyświetlanie
-                    OnPropertyChanged(nameof(OfferItemsGroupedByCategory));
-                    
-                    StatusMessage = "Kolejność kategorii została zaktualizowana";
-                }
             }
         }
         catch (Exception ex)
         {
-            StatusMessage = $"Błąd ustawiania kolejności: {ex.Message}";
+            StatusMessage = $"Błąd otwierania okna kolejności: {ex.Message}";
+        }
+    }
+
+    /// <summary>
+    /// Zastosuj nową kolejność produktów
+    /// </summary>
+    private void ApplyNewProductOrder(List<SavedOfferItem> newOrder)
+    {
+        try
+        {
+            // Zawieś notyfikacje podczas masowej operacji
+            _suppressNotifications = true;
+
+            // Wyczyść obecną kolekcję
+            OfferItems.Clear();
+
+            // Dodaj produkty w nowej kolejności
+            foreach (var item in newOrder)
+            {
+                OfferItems.Add(item);
+            }
+
+            // Wznów notyfikacje
+            _suppressNotifications = false;
+
+            // Invalidate cache - zmiana kolejności
+            _currentCollectionVersion++;
+
+            // Ręcznie wywołaj aktualizację podsumowania i zgrupowanego widoku
+            UpdateOfferSummary();
+            OnPropertyChanged(nameof(OfferItemsGroupedByCategory));
+
+            StatusMessage = $"Kolejność {newOrder.Count} produktów została zaktualizowana";
+        }
+        catch (Exception ex)
+        {
+            _suppressNotifications = false;
+            StatusMessage = $"Błąd stosowania nowej kolejności: {ex.Message}";
         }
     }
 
@@ -789,7 +934,7 @@ public partial class OfferGeneratorViewModel : ViewModelBase
             StatusMessage = "Generowanie PDF...";
             await Task.Run(async () =>
             {
-                await _pdfService.GenerateOfferPdfAsync(OfferItems, businessCard, filePath, OfferName, offerDate, _customCategoryOrder);
+                await _pdfService.GenerateOfferPdfAsync(OfferItems, businessCard, filePath, OfferName, offerDate, null);
             });
 
             StatusMessage = "PDF wygenerowany pomyślnie!";
@@ -1015,7 +1160,7 @@ public partial class OfferGeneratorViewModel : ViewModelBase
     {
         CurrentOffer = null;
         OfferItems.Clear();
-        _customCategoryOrder = null; // Resetuj własną kolejność kategorii
+        _currentCollectionVersion++; // Invalidate cache
         OnPropertyChanged(nameof(OfferItemsGroupedByCategory));
     }
 
@@ -1024,10 +1169,11 @@ public partial class OfferGeneratorViewModel : ViewModelBase
     #region Cleanup
 
     /// <summary>
-    /// Cleanup - odsubskrybuj eventy
+    /// Cleanup - odsubskrybuj eventy i wyczyść timery
     /// </summary>
     public void Cleanup()
     {
+        _updateSummaryDebounceTimer?.Dispose();
         OfferItems.CollectionChanged -= OnOfferItemsCollectionChanged;
 
         foreach (var item in OfferItems)

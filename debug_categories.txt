@@ -194,3 +194,43 @@
 === Categories.Count after load: 5 ===
 === ProductEditorViewModel.InitializeAsync END ===
 
+
+=== KONSTRUKTOR (ADD MODE): 07.02.2026 19:23:14 ===
+
+=== ProductEditorViewModel.InitializeAsync START ===
+
+=== LoadCategoriesAsync START 07.02.2026 19:23:14 ===
+=== Calling GetCategoriesAsync ===
+=== Got 5 categories from database ===
+=== Clearing Categories collection ===
+=== Adding category: cztery (ID: 4) ===
+=== Adding category: pięć (ID: 5) ===
+=== Adding category: test (ID: 2) ===
+=== Adding category: trzy (ID: 3) ===
+=== Adding category: Bez kategorii (ID: 1) ===
+=== Categories.Count after adding: 5 ===
+=== StatusMessage: Załadowano 5 kategorii ===
+=== LoadCategoriesAsync END ===
+=== Categories.Count after load: 5 ===
+=== ProductEditorViewModel.InitializeAsync END ===
+
+
+=== KONSTRUKTOR (ADD MODE): 07.02.2026 19:24:57 ===
+
+=== ProductEditorViewModel.InitializeAsync START ===
+
+=== LoadCategoriesAsync START 07.02.2026 19:24:57 ===
+=== Calling GetCategoriesAsync ===
+=== Got 5 categories from database ===
+=== Clearing Categories collection ===
+=== Adding category: cztery (ID: 4) ===
+=== Adding category: pięć (ID: 5) ===
+=== Adding category: test (ID: 2) ===
+=== Adding category: trzy (ID: 3) ===
+=== Adding category: Bez kategorii (ID: 1) ===
+=== Categories.Count after adding: 5 ===
+=== StatusMessage: Załadowano 5 kategorii ===
+=== LoadCategoriesAsync END ===
+=== Categories.Count after load: 5 ===
+=== ProductEditorViewModel.InitializeAsync END ===
+

@@ -72,6 +72,7 @@ public partial class SavedOfferItem : ObservableObject
     
     /// <summary>
     /// Marża w procentach - EDYTOWALNA przez użytkownika
+    /// OPTYMALIZACJA: Zgrupowane notyfikacje
     /// </summary>
     private decimal _margin = 0m;
     private bool _isUpdatingMargin = false;
@@ -93,13 +94,16 @@ public partial class SavedOfferItem : ObservableObject
                 _marginInput = roundedValue.ToString("F2", CultureInfo.CurrentCulture);
                 _salePriceNetInput = Math.Round(_salePriceNet, 2).ToString("F2", CultureInfo.CurrentCulture);
                 
-                OnPropertyChanged(nameof(SalePriceNet));
-                OnPropertyChanged(nameof(MarginInput));
-                OnPropertyChanged(nameof(SalePriceNetInput));
-                OnPropertyChanged(nameof(SalePriceGross));
-                OnPropertyChanged(nameof(TotalNet));
-                OnPropertyChanged(nameof(VatAmount));
-                OnPropertyChanged(nameof(TotalGross));
+                // OPTYMALIZACJA: Batch notification - jedna dla wszystkich zmian
+                OnPropertiesChanged(
+                    nameof(SalePriceNet),
+                    nameof(MarginInput),
+                    nameof(SalePriceNetInput),
+                    nameof(SalePriceGross),
+                    nameof(TotalNet),
+                    nameof(VatAmount),
+                    nameof(TotalGross)
+                );
                 _isUpdatingMargin = false;
             }
         }
@@ -134,6 +138,7 @@ public partial class SavedOfferItem : ObservableObject
     
     /// <summary>
     /// Cena sprzedaży netto jednostkowa - EDYTOWALNA przez użytkownika
+    /// OPTYMALIZACJA: Zgrupowane notyfikacje
     /// </summary>
     private decimal _salePriceNet = 0m;
     private bool _isUpdatingSalePrice = false;
@@ -153,18 +158,21 @@ public partial class SavedOfferItem : ObservableObject
                 {
                     _margin = ((roundedValue / PurchasePriceNet) - 1) * 100m;
                     _marginInput = Math.Round(_margin, 2).ToString("F2", CultureInfo.CurrentCulture);
-                    OnPropertyChanged(nameof(Margin));
-                    OnPropertyChanged(nameof(MarginInput));
                 }
                 
                 // Zaktualizuj input field
                 _salePriceNetInput = roundedValue.ToString("F2", CultureInfo.CurrentCulture);
                 
-                OnPropertyChanged(nameof(SalePriceNetInput));
-                OnPropertyChanged(nameof(SalePriceGross));
-                OnPropertyChanged(nameof(TotalNet));
-                OnPropertyChanged(nameof(VatAmount));
-                OnPropertyChanged(nameof(TotalGross));
+                // OPTYMALIZACJA: Batch notification - jedna dla wszystkich zmian
+                OnPropertiesChanged(
+                    nameof(Margin),
+                    nameof(MarginInput),
+                    nameof(SalePriceNetInput),
+                    nameof(SalePriceGross),
+                    nameof(TotalNet),
+                    nameof(VatAmount),
+                    nameof(TotalGross)
+                );
                 _isUpdatingSalePrice = false;
             }
         }
@@ -229,4 +237,15 @@ public partial class SavedOfferItem : ObservableObject
     /// Automatycznie przeliczana
     /// </summary>
     public decimal TotalGross => TotalNet + VatAmount;
+
+    /// <summary>
+    /// OPTYMALIZACJA: Helper do zgrupowanych notyfikacji
+    /// </summary>
+    private void OnPropertiesChanged(params string[] propertyNames)
+    {
+        foreach (var name in propertyNames)
+        {
+            OnPropertyChanged(name);
+        }
+    }
 }
