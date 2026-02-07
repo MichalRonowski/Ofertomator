@@ -353,11 +353,31 @@
                                                                      Background="Transparent"
                                                                      Padding="2"
                                                                      ToolTip.Tip="Edytuj nazwę produktu dla tej oferty (pozostaw puste aby użyć oryginalnej nazwy)"/>
-                                                            <TextBlock Grid.Column="2" 
-                                                                      Text="{Binding PurchasePriceNet, StringFormat='Zakup: {0:N2}'}" 
-                                                                      FontSize="10" 
-                                                                      Foreground="#B0B0B0"
-                                                                      VerticalAlignment="Center"/>
+                                                            <StackPanel Grid.Column="2"
+                                                                       Orientation="Horizontal"
+                                                                       Spacing="3"
+                                                                       VerticalAlignment="Center">
+                                                                <TextBlock Text="Zakup:" 
+                                                                          FontSize="10" 
+                                                                          Foreground="#B0B0B0"
+                                                                          VerticalAlignment="Center"
+                                                                          Margin="0,0,2,0"/>
+                                                                <TextBox Text="{Binding PurchasePriceNetInput}"
+                                                                        Width="50"
+                                                                        Height="10"
+                                                                        Padding="3,1"
+                                                                        FontSize="10"
+                                                                        VerticalAlignment="Center"
+                                                                        VerticalContentAlignment="Center"
+                                                                        TextAlignment="Center"
+                                                                        ToolTip.Tip="Edytuj cenę zakupu (zmiana zostanie zapisana w bazie danych po 600ms)"/>
+                                                                <TextBlock Text="💾"
+                                                                          FontSize="8"
+                                                                          VerticalAlignment="Center"
+                                                                          Foreground="#10A647"
+                                                                          IsVisible="{Binding IsSavingPurchasePrice}"
+                                                                          ToolTip.Tip="Zapisywanie do bazy..."/>
+                                                            </StackPanel>
                                                             <TextBlock Grid.Column="3" 
                                                                       Text="  |  " 
                                                                       FontSize="12" 

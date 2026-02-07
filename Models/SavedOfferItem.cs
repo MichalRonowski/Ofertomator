@@ -13,7 +13,15 @@ public partial class SavedOfferItem : ObservableObject
 {
     private Timer? _marginDebounceTimer;
     private Timer? _salePriceDebounceTimer;
+    private Timer? _purchasePriceDebounceTimer;
     private const int DebounceDelayMs = 600;
+    
+    /// <summary>
+    /// Event wywoływany gdy cena zakupu jest zmieniana przez użytkownika
+    /// ViewModel subskrybuje ten event żeby zapisać zmiany do bazy
+    /// </summary>
+    public event EventHandler<decimal>? PurchasePriceChanged;
+    
     public int Id { get; set; }
     
     public int OfferId { get; set; }
@@ -53,10 +61,83 @@ public partial class SavedOfferItem : ObservableObject
     private string _unit = "szt.";
     
     /// <summary>
-    /// Cena zakupu netto (snapshot)
+    /// Cena zakupu netto - EDYTOWALNA przez użytkownika
+    /// Zmiana ceny zakupu aktualizuje cenę sprzedaży (przy zachowaniu marży)
+    /// </summary>
+    private decimal _purchasePriceNet = 0m;
+    private bool _isUpdatingPurchasePrice = false;
+    public decimal PurchasePriceNet
+    {
+        get => Math.Round(_purchasePriceNet, 2);
+        set
+        {
+            if (_isUpdatingPurchasePrice) return;
+            
+            var roundedValue = Math.Round(value, 2);
+            if (SetProperty(ref _purchasePriceNet, roundedValue))
+            {
+                _isUpdatingPurchasePrice = true;
+                
+                // Aktualizuj cenę sprzedaży przy zachowaniu marży
+                _salePriceNet = roundedValue * (1 + _margin / 100m);
+                
+                // Zaktualizuj input fields
+                _purchasePriceNetInput = roundedValue.ToString("F2", CultureInfo.CurrentCulture);
+                _salePriceNetInput = Math.Round(_salePriceNet, 2).ToString("F2", CultureInfo.CurrentCulture);
+                
+                // Powiadom ViewModel o zmianie (do zapisu w bazie)
+                PurchasePriceChanged?.Invoke(this, roundedValue);
+                
+                // Batch notification
+                OnPropertiesChanged(
+                    nameof(PurchasePriceNetInput),
+                    nameof(SalePriceNet),
+                    nameof(SalePriceNetInput),
+                    nameof(SalePriceGross),
+                    nameof(TotalNet),
+                    nameof(VatAmount),
+                    nameof(TotalGross)
+                );
+                _isUpdatingPurchasePrice = false;
+            }
+        }
+    }
+    
+    /// <summary>
+    /// Input ceny zakupu z debouncing - bindowany w XAML
+    /// </summary>
+    private string _purchasePriceNetInput = "0,00";
+    public string PurchasePriceNetInput
+    {
+        get => _purchasePriceNetInput;
+        set
+        {
+            if (SetProperty(ref _purchasePriceNetInput, value))
+            {
+                // Anuluj poprzedni timer
+                _purchasePriceDebounceTimer?.Dispose();
+                
+                // Ustaw nowy timer
+                _purchasePriceDebounceTimer = new Timer(_ =>
+                {
+                    if (decimal.TryParse(value.Replace('.', ','), NumberStyles.Any, CultureInfo.CurrentCulture, out var parsedValue))
+                    {
+                        if (parsedValue >= 0) // Walidacja - cena nie może być ujemna
+                        {
+                            PurchasePriceNet = parsedValue;
+                        }
+                    }
+                    _purchasePriceDebounceTimer?.Dispose();
+                }, null, DebounceDelayMs, Timeout.Infinite);
+            }
+        }
+    }
+    
+    /// <summary>
+    /// Czy trwa zapisywanie ceny zakupu do bazy (dla wizualnego feedback-u)
     /// </summary>
     [ObservableProperty]
-    private decimal _purchasePriceNet = 0m;
+    private bool _isSavingPurchasePrice = false;
     
     /// <summary>
     /// Stawka VAT w procentach (snapshot)

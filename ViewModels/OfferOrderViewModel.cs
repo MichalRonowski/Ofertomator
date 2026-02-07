@@ -78,8 +78,10 @@ public partial class OfferOrderViewModel : ViewModelBase
         Action<List<SavedOfferItem>> onApply,
         Action? onCancel = null)
     {
+        ArgumentNullException.ThrowIfNull(offerItems);
+        
         Log("===== OfferOrderViewModel Constructor START =====");
-        Log($"offerItems count: {offerItems?.Count ?? 0}");
+        Log($"offerItems count: {offerItems.Count}");
         
         try
         {

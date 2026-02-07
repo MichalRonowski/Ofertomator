@@ -295,6 +295,7 @@ public partial class OfferGeneratorViewModel : ViewModelBase
             foreach (SavedOfferItem item in e.NewItems)
             {
                 item.PropertyChanged += OnOfferItemPropertyChanged;
+                item.PurchasePriceChanged += OnOfferItemPurchasePriceChanged;
             }
         }
 
@@ -304,6 +305,7 @@ public partial class OfferGeneratorViewModel : ViewModelBase
             foreach (SavedOfferItem item in e.OldItems)
             {
                 item.PropertyChanged -= OnOfferItemPropertyChanged;
+                item.PurchasePriceChanged -= OnOfferItemPurchasePriceChanged;
             }
         }
 
@@ -334,6 +336,55 @@ public partial class OfferGeneratorViewModel : ViewModelBase
             e.PropertyName == nameof(SavedOfferItem.TotalGross))
         {
             UpdateOfferSummaryDebounced();
+        }
+    }
+    
+    /// <summary>
+    /// Handler zmiany ceny zakupu w SavedOfferItem
+    /// Zapisuje nową cenę zakupu do bazy danych dla produktu (globalnie)
+    /// </summary>
+    private async void OnOfferItemPurchasePriceChanged(object? sender, decimal newPurchasePrice)
+    {
+        if (sender is not SavedOfferItem item || item.ProductId == null)
+            return;
+
+        try
+        {
+            // Ustaw flagę zapisywania dla wizualnego feedback-u
+            item.IsSavingPurchasePrice = true;
+            
+            // Pobierz produkt z bazy
+            var product = await _databaseService.GetProductByIdAsync(item.ProductId.Value);
+            if (product == null)
+            {
+                StatusMessage = $"Nie znaleziono produktu {item.Name}";
+                return;
+            }
+            
+            // Aktualizuj cenę zakupu
+            product.PurchasePriceNet = newPurchasePrice;
+            product.PriceUpdateDate = DateTime.Now;
+            
+            // Zapisz do bazy
+            var success = await _databaseService.UpdateProductAsync(product);
+            
+            if (success)
+            {
+                StatusMessage = $"✓ Zaktualizowano cenę zakupu: {item.Name}";
+            }
+            else
+            {
+                StatusMessage = $"Błąd aktualizacji ceny: {item.Name}";
+            }
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Błąd zapisywania ceny: {ex.Message}";
+        }
+        finally
+        {
+            // Wyłącz flagę zapisywania
+            item.IsSavingPurchasePrice = false;
         }
     }
 
@@ -486,6 +537,7 @@ public partial class OfferGeneratorViewModel : ViewModelBase
             {
                 ProductId = product.Id,
                 Name = product.Name,
+                CustomName = product.Name, // Inicjalizuj CustomName oryginalną nazwą produktu (umożliwia edycję)
                 CategoryName = product.Category?.Name,
                 Unit = product.Unit ?? "szt.",
                 PurchasePriceNet = product.PurchasePriceNet,
@@ -493,6 +545,9 @@ public partial class OfferGeneratorViewModel : ViewModelBase
                 Margin = defaultMargin, // Domyślna marża z kategorii
                 Quantity = 1m // Domyślna ilość
             };
+            
+            // Inicjalizuj input fields
+            offerItem.PurchasePriceNetInput = product.PurchasePriceNet.ToString("F2", System.Globalization.CultureInfo.CurrentCulture);
 
             // Dodaj do oferty
             OfferItems.Add(offerItem);
@@ -570,6 +625,7 @@ public partial class OfferGeneratorViewModel : ViewModelBase
                 {
                     ProductId = product.Id,
                     Name = product.Name,
+                    CustomName = product.Name, // Inicjalizuj CustomName oryginalną nazwą produktu (umożliwia edycję)
                     CategoryName = product.Category?.Name,
                     Unit = product.Unit ?? "szt.",
                     PurchasePriceNet = product.PurchasePriceNet,
@@ -1082,6 +1138,7 @@ public partial class OfferGeneratorViewModel : ViewModelBase
                 {
                     ProductId = item.ProductId,
                     Name = item.Name,
+                    CustomName = item.CustomName, // Zachowaj niestandardową nazwę
                     CategoryName = item.CategoryName,
                     Unit = item.Unit,
                     PurchasePriceNet = item.PurchasePriceNet,
@@ -1127,6 +1184,7 @@ public partial class OfferGeneratorViewModel : ViewModelBase
                 {
                     ProductId = item.ProductId,
                     Name = item.Name,
+                    CustomName = item.CustomName, // Zachowaj niestandardową nazwę
                     CategoryName = item.CategoryName,
                     Unit = item.Unit,
                     PurchasePriceNet = item.PurchasePriceNet,
