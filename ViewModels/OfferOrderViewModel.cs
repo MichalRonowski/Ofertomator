@@ -150,13 +150,21 @@ public partial class OfferOrderViewModel : ViewModelBase
         {
             _isUpdatingView = true;
             
+            // Zapamiętaj stan rozwinięcia kategorii przed aktualizacją
+            var expandedStates = GroupedItems.ToDictionary(
+                g => g.CategoryName,
+                g => g.IsExpanded
+            );
+            Console.WriteLine($"[OfferOrder] Saved {expandedStates.Count} expansion states");
+            
             var grouped = WorkingItems
                 .GroupBy(item => item.CategoryName ?? "Bez kategorii")
                 .Select(g => new CategoryGroup
                 {
                     CategoryName = g.Key,
                     Items = g.ToList(),
-                    IsExpanded = true
+                    // Przywróć zapisany stan lub domyślnie rozwinięta dla nowych kategorii
+                    IsExpanded = expandedStates.TryGetValue(g.Key, out var isExpanded) ? isExpanded : true
                 })
                 .ToList();
 
@@ -165,7 +173,7 @@ public partial class OfferOrderViewModel : ViewModelBase
             GroupedItems.Clear();
             foreach (var group in grouped)
             {
-                Console.WriteLine($"[OfferOrder] Adding group: {group.CategoryName} with {group.Items.Count} items");
+                Console.WriteLine($"[OfferOrder] Adding group: {group.CategoryName} with {group.Items.Count} items, IsExpanded={group.IsExpanded}");
                 GroupedItems.Add(group);
             }
             
@@ -219,7 +227,20 @@ public partial class OfferOrderViewModel : ViewModelBase
                 _isUpdatingView = true;
                 WorkingItems.Move(index, index - 1);
                 _isUpdatingView = false;
+                
+                // Wyzeruj zaznaczenie przed aktualizacją widoku
+                SelectedItem = null;
+                
                 UpdateGroupedView();
+                
+                // Przywróć zaznaczenie i wymuś aktualizację przycisków
+                SelectedItem = itemToMove;
+                MoveUpCommand.NotifyCanExecuteChanged();
+                MoveDownCommand.NotifyCanExecuteChanged();
+                MoveToTopCommand.NotifyCanExecuteChanged();
+                MoveToBottomCommand.NotifyCanExecuteChanged();
+                
+                Log($"SelectedItem restored to: {itemToMove.DisplayName}");
                 StatusMessage = $"Przesunięto w górę: {itemToMove.DisplayName}";
             }
             catch (Exception ex)
@@ -271,9 +292,21 @@ public partial class OfferOrderViewModel : ViewModelBase
                 _isUpdatingView = false;
                 Log("Set _isUpdatingView = false");
                 
+                // Wyzeruj zaznaczenie przed aktualizacją widoku
+                SelectedItem = null;
+                Log("SelectedItem cleared");
+                
                 UpdateGroupedView();
                 Log("UpdateGroupedView called");
                 
+                // Przywróć zaznaczenie i wymuś aktualizację przycisków
+                SelectedItem = itemToMove;
+                MoveUpCommand.NotifyCanExecuteChanged();
+                MoveDownCommand.NotifyCanExecuteChanged();
+                MoveToTopCommand.NotifyCanExecuteChanged();
+                MoveToBottomCommand.NotifyCanExecuteChanged();
+                
+                Log($"SelectedItem restored to: {itemToMove.DisplayName}");
                 StatusMessage = $"Przesunięto w dół: {itemToMove.DisplayName}";
                 Log("SUCCESS");
             }
@@ -317,7 +350,20 @@ public partial class OfferOrderViewModel : ViewModelBase
                 _isUpdatingView = true;
                 WorkingItems.Move(index, 0);
                 _isUpdatingView = false;
+                
+                // Wyzeruj zaznaczenie przed aktualizacją widoku
+                SelectedItem = null;
+                
                 UpdateGroupedView();
+                
+                // Przywróć zaznaczenie i wymuś aktualizację przycisków
+                SelectedItem = itemToMove;
+                MoveUpCommand.NotifyCanExecuteChanged();
+                MoveDownCommand.NotifyCanExecuteChanged();
+                MoveToTopCommand.NotifyCanExecuteChanged();
+                MoveToBottomCommand.NotifyCanExecuteChanged();
+                
+                Log($"SelectedItem restored to: {itemToMove.DisplayName}");
                 StatusMessage = $"Przesunięto na początek: {itemToMove.DisplayName}";
             }
             catch (Exception ex)
@@ -353,7 +399,20 @@ public partial class OfferOrderViewModel : ViewModelBase
                 _isUpdatingView = true;
                 WorkingItems.Move(index, WorkingItems.Count - 1);
                 _isUpdatingView = false;
+                
+                // Wyzeruj zaznaczenie przed aktualizacją widoku
+                SelectedItem = null;
+                
                 UpdateGroupedView();
+                
+                // Przywróć zaznaczenie i wymuś aktualizację przycisków
+                SelectedItem = itemToMove;
+                MoveUpCommand.NotifyCanExecuteChanged();
+                MoveDownCommand.NotifyCanExecuteChanged();
+                MoveToTopCommand.NotifyCanExecuteChanged();
+                MoveToBottomCommand.NotifyCanExecuteChanged();
+                
+                Log($"SelectedItem restored to: {itemToMove.DisplayName}");
                 StatusMessage = $"Przesunięto na koniec: {itemToMove.DisplayName}";
             }
             catch (Exception ex)
@@ -393,11 +452,24 @@ public partial class OfferOrderViewModel : ViewModelBase
             {
                 Log($"MoveCategoryUp: {categoryToMove.CategoryName} from {index} to {index - 1}");
                 
+                // Zapobiegaj automatycznej aktualizacji widoku - robimy to ręcznie
+                _isUpdatingView = true;
+                
                 // Przenieś grupę w kolekcji GroupedItems
                 GroupedItems.Move(index, index - 1);
 
                 // Przebuduj WorkingItems według nowej kolejności kategorii
                 RebuildWorkingItemsFromGroups();
+                
+                _isUpdatingView = false;
+
+                // Zachowaj zaznaczenie kategorii - wymuś aktualizację
+                SelectedGroup = null;
+                SelectedGroup = categoryToMove;
+                MoveCategoryUpCommand.NotifyCanExecuteChanged();
+                MoveCategoryDownCommand.NotifyCanExecuteChanged();
+                
+                Log($"SelectedGroup restored to: {categoryToMove.CategoryName}");
 
                 HasChanges = true;
                 StatusMessage = $"Przesunięto kategorię w górę: {categoryToMove.CategoryName}";
@@ -405,6 +477,7 @@ public partial class OfferOrderViewModel : ViewModelBase
             }
             catch (Exception ex)
             {
+                _isUpdatingView = false;
                 Log($"MoveCategoryUp ERROR: {ex}");
                 StatusMessage = $"Błąd przesuwania kategorii: {ex.Message}";
             }
@@ -432,8 +505,21 @@ public partial class OfferOrderViewModel : ViewModelBase
             {
                 Log($"MoveCategoryDown: {categoryToMove.CategoryName} from {index} to {index + 1}");
                 
+                // Zapobiegaj automatycznej aktualizacji widoku - robimy to ręcznie
+                _isUpdatingView = true;
+                
                 GroupedItems.Move(index, index + 1);
                 RebuildWorkingItemsFromGroups();
+                
+                _isUpdatingView = false;
+
+                // Zachowaj zaznaczenie kategorii - wymuś aktualizację
+                SelectedGroup = null;
+                SelectedGroup = categoryToMove;
+                MoveCategoryUpCommand.NotifyCanExecuteChanged();
+                MoveCategoryDownCommand.NotifyCanExecuteChanged();
+                
+                Log($"SelectedGroup restored to: {categoryToMove.CategoryName}");
 
                 HasChanges = true;
                 StatusMessage = $"Przesunięto kategorię w dół: {categoryToMove.CategoryName}";
@@ -441,6 +527,7 @@ public partial class OfferOrderViewModel : ViewModelBase
             }
             catch (Exception ex)
             {
+                _isUpdatingView = false;
                 Log($"MoveCategoryDown ERROR: {ex}");
                 StatusMessage = $"Błąd przesuwania kategorii: {ex.Message}";
             }

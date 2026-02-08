@@ -61,9 +61,21 @@ public partial class App : Application
     /// </summary>
     private void ConfigureServices(IServiceCollection services)
     {
+        // Ścieżka do bazy danych w folderze danych użytkownika
+        var appDataFolder = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+        var ofertomatorFolder = System.IO.Path.Combine(appDataFolder, "Ofertomator");
+        
+        // Utwórz folder jeśli nie istnieje
+        if (!System.IO.Directory.Exists(ofertomatorFolder))
+        {
+            System.IO.Directory.CreateDirectory(ofertomatorFolder);
+        }
+        
+        var databasePath = System.IO.Path.Combine(ofertomatorFolder, "ofertomator.db");
+        
         // Singleton - jedna instancja dla całej aplikacji
         services.AddSingleton<DatabaseService>(provider => 
-            new DatabaseService("ofertomator.db"));
+            new DatabaseService(databasePath));
         services.AddSingleton<IPdfService, PdfGeneratorService>();
 
         // ViewModels jako Transient (nowa instancja przy każdym żądaniu)

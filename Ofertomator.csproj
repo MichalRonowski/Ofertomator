@@ -7,6 +7,21 @@
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
     <ApplicationIcon>Assets\icon.ico</ApplicationIcon>
+    
+    <!-- Informacje o wersji aplikacji -->
+    <Version>1.0.0</Version>
+    <AssemblyVersion>1.0.0.0</AssemblyVersion>
+    <FileVersion>1.0.0.0</FileVersion>
+    <Product>Ofertomator</Product>
+    <Company>Ofertomator</Company>
+    <Copyright>Copyright © 2026</Copyright>
+  </PropertyGroup>
+
+  <!-- Konfiguracja dla Release Build -->
+  <PropertyGroup Condition="'$(Configuration)' == 'Release'">
+    <DebugType>none</DebugType>
+    <DebugSymbols>false</DebugSymbols>
+    <Optimize>true</Optimize>
   </PropertyGroup>
 
   <ItemGroup>

@@ -1,0 +1,108 @@
+═══════════════════════════════════════════════════════════
+                    OFERTOMATOR v1.0.0
+                  Generator Ofert Handlowych
+═══════════════════════════════════════════════════════════
+
+INSTALACJA
+══════════
+
+1. Rozpakuj folder do wybranej lokalizacji na dysku
+2. Uruchom plik: Ofertomator.exe
+3. Gotowe!
+
+
+PIERWSZE URUCHOMIENIE
+═════════════════════
+
+Przy pierwszym uruchomieniu aplikacja utworzy bazę danych
+w folderze:
+  %APPDATA%\Ofertomator\
+
+To miejsce gdzie przechowywane są:
+  • Produkty
+  • Kategorie
+  • Oferty
+  • Wizytówka firmowa
+
+
+AKTUALIZACJA APLIKACJI
+══════════════════════
+
+Aby zaktualizować aplikację do nowszej wersji:
+
+1. Zamknij Ofertomator
+2. Usuń stary folder z aplikacją
+3. Rozpakuj nową wersję
+4. Uruchom - Twoje dane pozostaną nienaruszone!
+
+WAŻNE: Dane są przechowywane osobno w folderze systemowym
+i nie zostaną usunięte podczas aktualizacji!
+
+
+KOPIA ZAPASOWA
+══════════════
+
+Aby zrobić kopię zapasową swoich danych:
+
+1. Otwórz folder: %APPDATA%\Ofertomator
+   (Możesz wkleić to w pasku adresu Eksploratora)
+   
+2. Skopiuj plik: ofertomator.db
+   
+3. Przechowuj kopię w bezpiecznym miejscu
+
+
+PRZYWRACANIE KOPII ZAPASOWEJ
+════════════════════════════
+
+1. Zamknij Ofertomator (sprawdź Menedżer zadań!)
+
+2. Otwórz folder: %APPDATA%\Ofertomator
+
+3. Zmień nazwę starego pliku na: ofertomator_STARY.db
+
+4. Skopiuj swoją kopię zapasową i nazwij: ofertomator.db
+
+5. Uruchom aplikację
+
+WAŻNE: Jeśli system blokuje zmianę pliku, uruchom
+komputer ponownie - plik może być zablokowany.
+
+
+WYMAGANIA SYSTEMOWE
+═══════════════════
+
+• Windows 10 lub nowszy (64-bit)
+• ~100 MB wolnego miejsca na dysku
+• 2 GB RAM (zalecane 4 GB)
+
+Wersja Self-Contained:
+• Nie wymaga instalacji .NET
+
+Wersja Framework-Dependent:
+• Wymaga .NET 8 Desktop Runtime
+• Pobierz: https://dotnet.microsoft.com/download/dotnet/8.0
+
+
+FUNKCJE
+═══════
+
+✓ Zarządzanie produktami i kategoriami
+✓ Import produktów z plików CSV/Excel
+✓ Generowanie profesjonalnych ofert w PDF
+✓ Zmiana kolejności produktów (drag & drop)
+✓ Zapisywanie i wczytywanie ofert
+✓ Edycja wizytówki firmowej
+✓ Wyszukiwanie po nazwach i kodach
+✓ Filtrowanie po kategoriach
+
+
+WSPARCIE
+═════════
+
+W razie pytań lub problemów, skontaktuj się z nami.
+
+
+═══════════════════════════════════════════════════════════
+Copyright © 2026 Ofertomator
+═══════════════════════════════════════════════════════════
